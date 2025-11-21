@@ -2,17 +2,25 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-const CONFIG_FILE = path.join(app.getPath('userData'), 'config.json');
-
 class Config {
   constructor() {
-    this.data = this.load();
+    this.data = {};
+    this.configFile = null;
+  }
+
+  getConfigFile() {
+    if (!this.configFile) {
+      this.configFile = path.join(app.getPath('userData'), 'config.json');
+    }
+    return this.configFile;
   }
 
   load() {
     try {
-      if (fs.existsSync(CONFIG_FILE)) {
-        return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      const configFile = this.getConfigFile();
+      if (fs.existsSync(configFile)) {
+        this.data = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+        return this.data;
       }
     } catch (error) {
       console.error('Error loading config:', error);
@@ -22,17 +30,19 @@ class Config {
 
   save() {
     try {
-      const dir = path.dirname(CONFIG_FILE);
+      const configFile = this.getConfigFile();
+      const dir = path.dirname(configFile);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.data, null, 2));
+      fs.writeFileSync(configFile, JSON.stringify(this.data, null, 2));
     } catch (error) {
       console.error('Error saving config:', error);
     }
   }
 
   isOnboarded() {
+    this.load(); // Ensure data is loaded
     return this.data.onboardingComplete === true;
   }
 

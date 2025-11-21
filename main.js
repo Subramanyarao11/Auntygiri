@@ -2,9 +2,13 @@ const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain } = require('electr
 const path = require('path');
 const fs = require('fs');
 const config = require('./config');
+const screenshotService = require('./screenshot-service');
 
 let tray = null;
 let mainWindow = null;
+
+// Make screenshot service globally accessible for configuration
+global.screenshotService = screenshotService;
 
 // Hide dock icon on macOS
 if (process.platform === 'darwin') {
@@ -66,6 +70,11 @@ ipcMain.on('onboarding-complete', (event, data) => {
     console.log('📌 Creating tray icon');
     createTray();
     console.log('✅ Tray icon created');
+    
+    // Start screenshot service
+    console.log('📸 Starting screenshot service');
+    screenshotService.start();
+    console.log('✅ Screenshot service started');
   }, 3000);
 });
 
@@ -97,9 +106,91 @@ function createTray() {
         type: 'separator'
       },
       {
+        label: 'Screenshot Service',
+        submenu: [
+          {
+            label: 'Capture Now (Test)',
+            click: () => {
+              console.log('🖱️ Manual capture triggered');
+              screenshotService.captureNow();
+            }
+          },
+          {
+            label: 'View Status',
+            click: () => {
+              const status = screenshotService.getStatus();
+              console.log('📊 Screenshot Service Status:', JSON.stringify(status, null, 2));
+            }
+          },
+          {
+            type: 'separator'
+          },
+          {
+            label: 'API Configuration',
+            submenu: [
+              {
+                label: screenshotService.apiEndpoint ? '✅ API Configured' : '⚠️  API Not Configured',
+                enabled: false
+              },
+              {
+                type: 'separator'
+              },
+              {
+                label: 'Configure API (see console)',
+                click: () => {
+                  console.log('');
+                  console.log('⚙️  TO CONFIGURE API, run in console:');
+                  console.log('');
+                  console.log('screenshotService.configureAPI(');
+                  console.log('  "https://your-api.com/api/screenshots",  // API endpoint');
+                  console.log('  "Bearer your-token-here",                 // Auth token');
+                  console.log('  true                                       // Delete after upload');
+                  console.log(');');
+                  console.log('');
+                  console.log('💡 Example:');
+                  console.log('screenshotService.configureAPI(');
+                  console.log('  "https://api.example.com/screenshots",');
+                  console.log('  "Bearer abc123...",');
+                  console.log('  true');
+                  console.log(');');
+                  console.log('');
+                }
+              },
+              {
+                label: 'Test API Connection',
+                enabled: !!screenshotService.apiEndpoint,
+                click: async () => {
+                  console.log('🧪 Testing API connection...');
+                  await screenshotService.testAPIConnection();
+                }
+              }
+            ]
+          },
+          {
+            type: 'separator'
+          },
+          {
+            label: screenshotService.isRunning ? 'Stop Capture' : 'Start Capture',
+            click: () => {
+              if (screenshotService.isRunning) {
+                screenshotService.stop();
+              } else {
+                screenshotService.start();
+              }
+              // Rebuild menu to update the label
+              createTray();
+            }
+          }
+        ]
+      },
+      {
+        type: 'separator'
+      },
+      {
         label: 'Quit Application',
         click: () => {
           console.log('🖱️ Quit clicked');
+          screenshotService.stop();
           app.isQuitting = true;
           app.quit();
         }
@@ -158,6 +249,10 @@ app.whenReady().then(() => {
     console.log('✅ Already onboarded - running in background');
     createHiddenWindow();
     createTray();
+    
+    // Start screenshot service automatically
+    console.log('📸 Auto-starting screenshot service');
+    screenshotService.start();
   }
 
   app.on('activate', () => {
