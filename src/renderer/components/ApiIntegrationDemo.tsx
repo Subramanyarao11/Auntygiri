@@ -282,7 +282,7 @@ export const ApiIntegrationDemo: React.FC<ApiIntegrationDemoProps> = ({ classNam
               <div className="text-sm text-blue-600 mb-2">
                 Total: {activitiesData.data.total} activities
               </div>
-              {activitiesData.data.activities.slice(0, 5).map((activity) => (
+              {activitiesData.data.activities && activitiesData.data.activities.length > 0 ? activitiesData.data.activities.slice(0, 5).map((activity) => (
                 <div key={activity.id} className="bg-white p-2 rounded text-sm">
                   <div className="font-medium">{activity.app_name}</div>
                   <div className="text-gray-600 truncate">{activity.window_title}</div>
@@ -290,7 +290,9 @@ export const ApiIntegrationDemo: React.FC<ApiIntegrationDemoProps> = ({ classNam
                     {activity.duration}s • {activity.activity_type}
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-gray-500 text-sm">No activities available</div>
+              )}
             </div>
           ) : (
             <div className="text-gray-500">No activities found</div>
@@ -312,22 +314,26 @@ export const ApiIntegrationDemo: React.FC<ApiIntegrationDemoProps> = ({ classNam
               
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">Top Apps:</div>
-                {summaryData.data.by_app.slice(0, 3).map((app, index) => (
+                {summaryData.data.by_app && summaryData.data.by_app.length > 0 ? summaryData.data.by_app.slice(0, 3).map((app, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="truncate">{app.app_name}</span>
                     <span className="text-gray-600">{Math.floor(app.total_duration / 60)}m</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-gray-500 text-sm">No app data available</div>
+                )}
               </div>
               
               <div className="space-y-2">
                 <div className="text-sm font-medium text-gray-700">By Type:</div>
-                {summaryData.data.by_type.map((type, index) => (
+                {summaryData.data.by_type && summaryData.data.by_type.length > 0 ? summaryData.data.by_type.map((type, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="capitalize">{type.activity_type}</span>
                     <span className="text-gray-600">{Math.floor(type.total_duration / 60)}m</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-gray-500 text-sm">No type data available</div>
+                )}
               </div>
             </div>
           ) : (
@@ -347,7 +353,7 @@ export const ApiIntegrationDemo: React.FC<ApiIntegrationDemoProps> = ({ classNam
               <div className="text-sm text-purple-600 mb-2">
                 Total: {metricsData.data.total} metric records
               </div>
-              {metricsData.data.metrics.slice(0, 3).map((metric) => (
+              {metricsData.data.metrics && metricsData.data.metrics.length > 0 ? metricsData.data.metrics.slice(0, 3).map((metric) => (
                 <div key={metric.id} className="bg-white p-2 rounded text-sm">
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -367,7 +373,9 @@ export const ApiIntegrationDemo: React.FC<ApiIntegrationDemoProps> = ({ classNam
                     {new Date(metric.created_at).toLocaleString()}
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-gray-500 text-sm">No metrics available</div>
+              )}
             </div>
           ) : (
             <div className="text-gray-500">No metrics found</div>

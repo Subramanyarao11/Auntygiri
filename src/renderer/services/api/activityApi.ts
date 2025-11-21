@@ -4,6 +4,7 @@
  */
 
 import { createApi, fetchBaseQuery, retry } from '@reduxjs/toolkit/query/react';
+import { API_URLS } from '../../config/api';
 import type { 
   CreateWindowActivityRequest,
   CreateBrowserActivityRequest,
@@ -161,7 +162,7 @@ interface MetricsSummaryResponse {
 // Base query with retry logic
 const baseQueryWithRetry = retry(
   fetchBaseQuery({
-    baseUrl: '/api/v1/monitor',
+    baseUrl: API_URLS.MONITOR_BASE,
     prepareHeaders: (headers, { getState }) => {
       // Add auth token if available
       const token = (getState() as any).auth?.token;
