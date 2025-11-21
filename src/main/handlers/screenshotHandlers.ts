@@ -114,7 +114,6 @@ export function registerScreenshotHandlers(mainWindow: BrowserWindow, store: Sto
 
       screenshotManager.configureAPI(
         config.endpoint,
-        config.token,
         config.deleteAfterUpload ?? true
       );
 

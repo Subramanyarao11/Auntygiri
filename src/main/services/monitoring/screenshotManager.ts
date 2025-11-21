@@ -25,7 +25,6 @@ interface UploadQueueItem {
 
 interface APIConfig {
   endpoint: string | null;
-  token: string | null;
   deleteAfterUpload: boolean;
 }
 
@@ -49,10 +48,9 @@ export class ScreenshotManager {
     this.uploadRetryQueue = [];
     this.retryQueueInterval = null;
     
-    // API configuration (to be set via configureAPI method)
+    // API configuration - using anonymous upload endpoint from backend
     this.apiConfig = {
-      endpoint: null,
-      token: null,
+      endpoint: 'http://localhost:3000/api/v1/monitor/screenshot',
       deleteAfterUpload: true,
     };
     
@@ -101,17 +99,15 @@ export class ScreenshotManager {
   }
 
   /**
-   * Configure API settings
+   * Configure API settings (anonymous uploads - no token required)
    */
-  configureAPI(endpoint: string, token: string, deleteAfterUpload = true): void {
+  configureAPI(endpoint: string, deleteAfterUpload = true): void {
     this.apiConfig.endpoint = endpoint;
-    this.apiConfig.token = token;
     this.apiConfig.deleteAfterUpload = deleteAfterUpload;
     
-    log.info('API configured:', {
+    log.info('API configured for anonymous uploads:', {
       endpoint,
       deleteAfterUpload,
-      tokenSet: !!token,
     });
   }
 
@@ -202,13 +198,13 @@ export class ScreenshotManager {
   }
 
   /**
-   * Upload screenshot with retry logic
+   * Upload screenshot with retry logic using anonymous multipart upload
    */
   private async uploadScreenshotWithRetry(
     screenshot: Screenshot,
     retryCount: number
   ): Promise<boolean> {
-    if (!this.apiConfig.endpoint || !this.apiConfig.token) {
+    if (!this.apiConfig.endpoint) {
       log.warn('API not configured, skipping upload');
       return false;
     }
@@ -216,28 +212,23 @@ export class ScreenshotManager {
     try {
       log.info(`Uploading screenshot ${screenshot.id} (attempt ${retryCount + 1}/${this.MAX_RETRIES + 1})`);
 
-      // Read file as base64
+      // Read file as buffer for FormData
       const imageBuffer = await fs.readFile(screenshot.filePath);
-      const base64Image = imageBuffer.toString('base64');
+      
+      // Create FormData for multipart upload
+      const FormData = require('form-data');
+      const formData = new FormData();
+      
+      // Add the screenshot file with proper field name
+      formData.append('screenshot', imageBuffer, {
+        filename: `${screenshot.id}.jpg`,
+        contentType: 'image/jpeg',
+      });
 
-      // Prepare payload
-      const payload = {
-        screenshotId: screenshot.id,
-        timestamp: screenshot.timestamp,
-        size: screenshot.size,
-        image: base64Image,
-        windowTitle: screenshot.windowTitle,
-        applicationName: screenshot.applicationName,
-        metadata: {
-          capturedAt: new Date(screenshot.timestamp).toISOString(),
-        },
-      };
-
-      // Upload to API
-      const response = await axios.post(this.apiConfig.endpoint, payload, {
+      // Upload to API using FormData
+      const response = await axios.post(this.apiConfig.endpoint, formData, {
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: this.apiConfig.token,
+          ...formData.getHeaders(),
         },
         timeout: this.UPLOAD_TIMEOUT,
         validateStatus: (status) => status < 600,
@@ -245,7 +236,13 @@ export class ScreenshotManager {
 
       // Handle successful upload (2xx)
       if (response.status >= 200 && response.status < 300) {
+        const responseData = response.data;
         log.info(`Screenshot ${screenshot.id} uploaded successfully`);
+        
+        // Log API response details
+        if (responseData?.data?.screenshot) {
+          log.info(`API Response - File ID: ${responseData.data.screenshot.id}, Size: ${responseData.data.screenshot.file_size} bytes`);
+        }
 
         // Mark as uploaded
         await this.markAsUploaded(screenshot.id);
@@ -493,7 +490,7 @@ export class ScreenshotManager {
    */
   getAPIStatus(): { configured: boolean; endpoint: string | null; deleteAfterUpload: boolean } {
     return {
-      configured: !!(this.apiConfig.endpoint && this.apiConfig.token),
+      configured: !!this.apiConfig.endpoint,
       endpoint: this.apiConfig.endpoint,
       deleteAfterUpload: this.apiConfig.deleteAfterUpload,
     };
