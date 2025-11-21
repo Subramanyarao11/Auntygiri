@@ -15,12 +15,55 @@ export const IPC_CHANNELS = {
 
   // Activity Monitoring
   MONITORING: {
+    // Legacy channels (keep for compatibility)
     START: 'monitoring:start',
     STOP: 'monitoring:stop',
     GET_CURRENT_WINDOW: 'monitoring:get-current-window',
     GET_ACTIVITY_LOG: 'monitoring:get-activity-log',
     UPDATE_ACTIVITY: 'monitoring:update-activity',
     IDLE_STATUS_CHANGED: 'monitoring:idle-status-changed',
+
+    // New real-time monitoring channels
+    // Window tracking
+    START_WINDOW_TRACKING: 'monitoring:start-window-tracking',
+    STOP_WINDOW_TRACKING: 'monitoring:stop-window-tracking',
+    GET_WINDOW_TRACKING_STATE: 'monitoring:get-window-tracking-state',
+    WINDOW_EVENT: 'monitoring:window-event', // Main -> Renderer
+
+    // Browser tracking
+    START_BROWSER_TRACKING: 'monitoring:start-browser-tracking',
+    STOP_BROWSER_TRACKING: 'monitoring:stop-browser-tracking',
+    GET_BROWSER_TRACKING_STATE: 'monitoring:get-browser-tracking-state',
+    URL_EVENT: 'monitoring:url-event', // Main -> Renderer
+
+    // Idle monitoring
+    START_IDLE_MONITOR: 'monitoring:start-idle-monitor',
+    STOP_IDLE_MONITOR: 'monitoring:stop-idle-monitor',
+    GET_IDLE_STATE: 'monitoring:get-idle-state',
+    IDLE_EVENT: 'monitoring:idle-event', // Main -> Renderer
+
+    // Focus sessions
+    START_FOCUS_SESSION: 'monitoring:start-focus-session',
+    END_FOCUS_SESSION: 'monitoring:end-focus-session',
+    PAUSE_FOCUS_SESSION: 'monitoring:pause-focus-session',
+    RESUME_FOCUS_SESSION: 'monitoring:resume-focus-session',
+    GET_CURRENT_FOCUS_SESSION: 'monitoring:get-current-focus-session',
+    FOCUS_EVENT: 'monitoring:focus-event', // Main -> Renderer
+
+    // Productivity tracking
+    GET_PRODUCTIVITY_STATS: 'monitoring:get-productivity-stats',
+    UPDATE_PRODUCTIVITY_RULES: 'monitoring:update-productivity-rules',
+    PRODUCTIVITY_UPDATE: 'monitoring:productivity-update', // Main -> Renderer
+
+    // System metrics
+    START_METRICS_TRACKING: 'monitoring:start-metrics-tracking',
+    STOP_METRICS_TRACKING: 'monitoring:stop-metrics-tracking',
+    GET_CURRENT_METRICS: 'monitoring:get-current-metrics',
+    METRICS_UPDATE: 'monitoring:metrics-update', // Main -> Renderer
+
+    // Utility
+    RESET_TRACKING_DATA: 'monitoring:reset-tracking-data',
+    EXPORT_ACTIVITY_DATA: 'monitoring:export-activity-data',
   },
 
   // Screenshots

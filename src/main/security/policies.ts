@@ -3,7 +3,7 @@
  * Configures security settings for the application
  */
 
-import { app, session } from 'electron';
+import { app } from 'electron';
 import log from 'electron-log';
 
 export function setupSecurityPolicies(): void {
@@ -12,24 +12,24 @@ export function setupSecurityPolicies(): void {
   // Disable GPU acceleration if needed for security
   // app.disableHardwareAcceleration();
 
-  // Set Content Security Policy
-  app.whenReady().then(() => {
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Content-Security-Policy': [
-            "default-src 'self'",
-            "script-src 'self'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "connect-src 'self' https://api.yourserver.com",
-          ].join('; '),
-        },
-      });
-    });
-  });
+  // Set Content Security Policy (disabled in development)
+  // app.whenReady().then(() => {
+  //   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+  //     callback({
+  //       responseHeaders: {
+  //         ...details.responseHeaders,
+  //         'Content-Security-Policy': [
+  //           "default-src 'self'",
+  //           "script-src 'self'",
+  //           "style-src 'self' 'unsafe-inline'",
+  //           "img-src 'self' data: https:",
+  //           "font-src 'self' data:",
+  //           "connect-src 'self' https://api.yourserver.com",
+  //         ].join('; '),
+  //       },
+  //     });
+  //   });
+  // });
 
   // Prevent navigation to external URLs
   app.on('web-contents-created', (_event, contents) => {

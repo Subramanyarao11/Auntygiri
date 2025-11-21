@@ -2,7 +2,7 @@
   "name": "student-monitoring-app",
   "version": "1.0.0",
   "description": "Student Monitoring Desktop Application with Activity Tracking, Screenshots, and Productivity Analytics",
-  "main": "dist-electron/main/main/main.js",
+  "main": "dist-electron/main/src/main/main.js",
   "author": "Your Team",
   "license": "MIT",
   "private": true,
