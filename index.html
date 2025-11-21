@@ -2,37 +2,220 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-    <title>Monitoring App</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    <title>Monitoring App - Setup</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        
         .container {
-            text-align: center;
-            color: white;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
         }
+        
         h1 {
-            font-size: 48px;
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .success-icon {
+            font-size: 64px;
             margin-bottom: 20px;
         }
-        p {
-            font-size: 20px;
-            opacity: 0.9;
+        
+        .success-message h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .success-message p {
+            color: #666;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Electron App</h1>
-        <p>Your minimal Electron app is running!</p>
+        <div id="onboarding">
+            <h1>🛡️ Parental Monitoring Setup</h1>
+            <p class="subtitle">Set up monitoring for your child's device</p>
+            
+            <form id="setupForm">
+                <div class="form-group">
+                    <label for="parentEmail">Parent Email</label>
+                    <input type="email" id="parentEmail" placeholder="parent@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="parentPassword">Parent Password</label>
+                    <input type="password" id="parentPassword" placeholder="Create a secure password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="childName">Child's Name</label>
+                    <input type="text" id="childName" placeholder="Child's name" required>
+                </div>
+                
+                <button type="submit">Complete Setup</button>
+                
+                <div class="info-box">
+                    ℹ️ After setup, this app will run silently in the background. You can access it anytime using the menu bar icon.
+                </div>
+            </form>
+        </div>
+        
+        <div id="success" class="hidden">
+            <div class="success-message">
+                <div class="success-icon">✅</div>
+                <h2>Setup Complete!</h2>
+                <p>The monitoring app is now running in the background. This window will close automatically.</p>
+                <p style="margin-top: 15px; font-weight: 600;">Access the dashboard from the menu bar icon.</p>
+            </div>
+        </div>
     </div>
+    
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        console.log('🚀 Script loaded');
+        
+        document.getElementById('setupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('📝 Form submitted');
+            
+            const parentEmail = document.getElementById('parentEmail').value;
+            const parentPassword = document.getElementById('parentPassword').value;
+            const childName = document.getElementById('childName').value;
+            
+            console.log('📧 Parent Email:', parentEmail);
+            console.log('👶 Child Name:', childName);
+            
+            // Prepare onboarding data
+            const onboardingData = {
+                parentEmail,
+                parentPassword, // In production, hash this before storing
+                childName
+            };
+            
+            // Send to main process
+            console.log('📤 Sending onboarding-complete event');
+            ipcRenderer.send('onboarding-complete', onboardingData);
+            console.log('✅ Event sent successfully');
+            
+            // Show success message
+            console.log('🎉 Showing success message');
+            document.getElementById('onboarding').classList.add('hidden');
+            document.getElementById('success').classList.remove('hidden');
+            console.log('✅ Success message displayed');
+            
+            // Close window after 3 seconds
+            console.log('⏰ Setting timeout to close window in 3 seconds');
+            setTimeout(() => {
+                console.log('🔒 Attempting to close window NOW');
+                try {
+                    window.close();
+                    console.log('✅ window.close() called');
+                } catch (error) {
+                    console.error('❌ Error closing window:', error);
+                }
+            }, 3000);
+            console.log('⏰ Timeout set successfully');
+        });
+        
+        console.log('✅ Event listener attached');
+    </script>
 </body>
 </html>
 
