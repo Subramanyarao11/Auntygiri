@@ -5,6 +5,7 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  envDir: './config', // Point to non-existent directory to disable .env loading
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src/renderer'),
