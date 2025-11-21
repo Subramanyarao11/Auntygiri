@@ -10,7 +10,7 @@ import { BrowserTracker } from '../monitoring/browserTracker';
 import { IdleTracker } from '../monitoring/idleTracker';
 import { SystemMetricsTracker } from '../monitoring/systemMetrics';
 
-export async function initializeServices(mainWindow: BrowserWindow, store: Store): Promise<void> {
+export async function initializeServices(mainWindow: BrowserWindow, _store: Store): Promise<void> {
   try {
     log.info('Initializing main process services...');
 
@@ -49,8 +49,8 @@ async function startActivityMonitoring(mainWindow: BrowserWindow): Promise<void>
         log.info('✅ Browser tracking auto-started (10s interval)');
 
         // Start idle tracking (check every 60 seconds)
-        idleTracker.startIdleTracking(60000);
-        log.info('✅ Idle tracking auto-started (60s interval)');
+        idleTracker.startIdleMonitor(60, 5000);
+        log.info('✅ Idle tracking auto-started (60s threshold, 5s check interval)');
 
         // Start system metrics tracking (every 30 seconds)
         systemMetricsTracker.startMetricsTracking(30000);

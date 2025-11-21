@@ -4,6 +4,7 @@ import SimpleActivityMonitor from './components/SimpleActivityMonitor';
 import ApiIntegrationDemo from './components/ApiIntegrationDemo';
 import BackendConnectionTest from './components/BackendConnectionTest';
 import QuickApiTest from './components/QuickApiTest';
+import MonitoringTest from './components/MonitoringTest';
 
 export default function App() {
   const [count, setCount] = useState(0);
@@ -12,6 +13,7 @@ export default function App() {
   const [showApiDemo, setShowApiDemo] = useState(false);
   const [showConnectionTest, setShowConnectionTest] = useState(false);
   const [showQuickTest, setShowQuickTest] = useState(false);
+  const [showMonitoringTest, setShowMonitoringTest] = useState(false);
 
   return (
     <div style={{
@@ -90,6 +92,21 @@ export default function App() {
           </button>
           
           <button 
+            onClick={() => setShowMonitoringTest(!showMonitoringTest)}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              backgroundColor: showMonitoringTest ? '#dc3545' : '#6f42c1',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {showMonitoringTest ? 'Hide' : 'Test'} Monitoring
+          </button>
+          
+          <button 
             onClick={() => setShowSimpleMonitor(!showSimpleMonitor)}
             style={{
               padding: '10px 20px',
@@ -145,6 +162,12 @@ export default function App() {
       {showQuickTest && (
         <div style={{ marginTop: '20px' }}>
           <QuickApiTest />
+        </div>
+      )}
+
+      {showMonitoringTest && (
+        <div style={{ marginTop: '20px' }}>
+          <MonitoringTest />
         </div>
       )}
 
