@@ -7,7 +7,7 @@ import Store from 'electron-store';
 import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 
-export function registerNotificationHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerNotificationHandlers(mainWindow: BrowserWindow, _store: Store): void {
   log.info('Registering notification handlers');
 
   ipcMain.on(IPC_CHANNELS.NOTIFICATION.SHOW, (_event, { title, message }) => {

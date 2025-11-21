@@ -33,39 +33,39 @@ export const APP_CONFIG = {
 } as const;
 
 export const PRODUCTIVITY_CATEGORIES = {
-  PRODUCTIVE: 'productive',
-  NEUTRAL: 'neutral',
-  UNPRODUCTIVE: 'unproductive',
-  BLOCKED: 'blocked',
+  PRODUCTIVE: 'PRODUCTIVE',
+  NEUTRAL: 'NEUTRAL',
+  UNPRODUCTIVE: 'UNPRODUCTIVE',
+  BLOCKED: 'BLOCKED',
 } as const;
 
 export const ACTIVITY_TYPES = {
-  WINDOW_CHANGE: 'window_change',
-  URL_CHANGE: 'url_change',
-  IDLE_START: 'idle_start',
-  IDLE_END: 'idle_end',
-  SCREENSHOT: 'screenshot',
-  BAD_WEBSITE_DETECTED: 'bad_website_detected',
+  WINDOW_CHANGE: 'WINDOW_CHANGE',
+  URL_CHANGE: 'URL_CHANGE',
+  IDLE_START: 'IDLE_START',
+  IDLE_END: 'IDLE_END',
+  SCREENSHOT: 'SCREENSHOT',
+  BAD_WEBSITE_DETECTED: 'BAD_WEBSITE_DETECTED',
 } as const;
 
 export const NOTIFICATION_TYPES = {
-  INFO: 'info',
-  WARNING: 'warning',
-  ERROR: 'error',
-  SUCCESS: 'success',
+  INFO: 'INFO',
+  WARNING: 'WARNING',
+  ERROR: 'ERROR',
+  SUCCESS: 'SUCCESS',
 } as const;
 
 export const FOCUS_SESSION_STATUS = {
-  ACTIVE: 'active',
-  PAUSED: 'paused',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
 } as const;
 
 export const SYNC_STATUS = {
-  IDLE: 'idle',
-  SYNCING: 'syncing',
-  SUCCESS: 'success',
-  ERROR: 'error',
+  IDLE: 'IDLE',
+  SYNCING: 'SYNCING',
+  SUCCESS: 'SUCCESS',
+  ERROR: 'ERROR',
 } as const;
 

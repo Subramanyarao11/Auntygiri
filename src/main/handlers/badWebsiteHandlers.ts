@@ -8,7 +8,7 @@ import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 import type { BadWebsite } from '../../shared/types';
 
-export function registerBadWebsiteHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerBadWebsiteHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering bad website handlers');
 
   ipcMain.handle(IPC_CHANNELS.BAD_WEBSITE.CHECK, async (_event, url: string) => {

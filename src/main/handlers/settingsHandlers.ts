@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
-export function registerSettingsHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerSettingsHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering settings handlers');
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS.GET_ALL, async () => {

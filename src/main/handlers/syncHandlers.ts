@@ -10,7 +10,7 @@ import { SyncManager } from '../services/sync/syncManager';
 
 let syncManager: SyncManager | null = null;
 
-export function registerSyncHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerSyncHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering sync handlers');
 
   syncManager = new SyncManager(store);

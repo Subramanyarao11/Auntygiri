@@ -8,7 +8,7 @@ import os from 'os';
 import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 
-export function registerSystemHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerSystemHandlers(mainWindow: BrowserWindow, _store: Store): void {
   log.info('Registering system handlers');
 
   ipcMain.handle(IPC_CHANNELS.SYSTEM.GET_INFO, async () => {

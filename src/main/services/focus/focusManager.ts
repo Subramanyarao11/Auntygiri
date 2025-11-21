@@ -13,11 +13,9 @@ import type { FocusSession } from '../../../shared/types';
 const FOCUS_SESSION_KEY = 'active_focus_session';
 
 export class FocusManager {
-  private mainWindow: BrowserWindow;
   private store: Store;
 
-  constructor(mainWindow: BrowserWindow, store: Store) {
-    this.mainWindow = mainWindow;
+  constructor(_mainWindow: BrowserWindow, store: Store) {
     this.store = store;
   }
 

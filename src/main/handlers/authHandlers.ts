@@ -16,7 +16,7 @@ const USER_KEY = 'user_data';
 /**
  * Register authentication IPC handlers
  */
-export function registerAuthHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering authentication handlers');
 
   // Login handler

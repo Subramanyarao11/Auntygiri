@@ -6,7 +6,7 @@ import { BrowserWindow } from 'electron';
 import Store from 'electron-store';
 import log from 'electron-log';
 
-export async function initializeServices(mainWindow: BrowserWindow, store: Store): Promise<void> {
+export async function initializeServices(_mainWindow: BrowserWindow, _store: Store): Promise<void> {
   try {
     log.info('Initializing main process services...');
 

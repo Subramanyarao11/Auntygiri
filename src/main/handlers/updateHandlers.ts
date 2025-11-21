@@ -7,7 +7,7 @@ import Store from 'electron-store';
 import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 
-export function registerUpdateHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerUpdateHandlers(_mainWindow: BrowserWindow, _store: Store): void {
   log.info('Registering update handlers');
 
   ipcMain.handle(IPC_CHANNELS.UPDATE.CHECK, async () => {

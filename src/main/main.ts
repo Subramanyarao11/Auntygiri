@@ -3,8 +3,7 @@
  * Handles application lifecycle, window management, and initialization
  */
 
-import { app, BrowserWindow, protocol, session } from 'electron';
-import path from 'path';
+import { app, BrowserWindow, protocol } from 'electron';
 import log from 'electron-log';
 import Store from 'electron-store';
 import { createMainWindow } from './windows/mainWindow';
@@ -59,6 +58,18 @@ async function createWindow() {
   }
 }
 
+// Register custom protocols BEFORE app is ready
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
+
 /**
  * Initialize the application
  */
@@ -68,18 +79,6 @@ async function initializeApp() {
 
     // Setup security policies
     setupSecurityPolicies();
-
-    // Register custom protocols
-    protocol.registerSchemesAsPrivileged([
-      {
-        scheme: 'app',
-        privileges: {
-          standard: true,
-          secure: true,
-          supportFetchAPI: true,
-        },
-      },
-    ]);
 
     log.info('Application initialized successfully');
   } catch (error) {

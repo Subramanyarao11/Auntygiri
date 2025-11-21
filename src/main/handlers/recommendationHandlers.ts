@@ -7,7 +7,7 @@ import Store from 'electron-store';
 import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 
-export function registerRecommendationHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerRecommendationHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering recommendation handlers');
 
   ipcMain.handle(IPC_CHANNELS.RECOMMENDATIONS.GET_ALL, async () => {

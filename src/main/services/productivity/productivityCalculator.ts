@@ -105,7 +105,7 @@ export class ProductivityCalculator {
    */
   private calculateIdleTime(activities: ActivityEntry[]): number {
     return activities
-      .filter(a => a.type === 'idle_start')
+      .filter(a => a.type === 'IDLE_START')
       .reduce((sum, a) => sum + (a.duration || 0), 0);
   }
 

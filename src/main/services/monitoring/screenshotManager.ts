@@ -16,12 +16,10 @@ import type { Screenshot } from '../../../shared/types';
 const SCREENSHOTS_STORE_KEY = 'screenshots';
 
 export class ScreenshotManager {
-  private mainWindow: BrowserWindow;
   private store: Store;
   private screenshotsDir: string;
 
-  constructor(mainWindow: BrowserWindow, store: Store) {
-    this.mainWindow = mainWindow;
+  constructor(_mainWindow: BrowserWindow, store: Store) {
     this.store = store;
     this.screenshotsDir = path.join(app.getPath('userData'), 'screenshots');
     this.initializeDirectory();

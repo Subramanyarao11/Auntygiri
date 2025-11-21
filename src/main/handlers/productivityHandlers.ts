@@ -10,7 +10,7 @@ import { ProductivityCalculator } from '../services/productivity/productivityCal
 
 let productivityCalculator: ProductivityCalculator | null = null;
 
-export function registerProductivityHandlers(mainWindow: BrowserWindow, store: Store): void {
+export function registerProductivityHandlers(_mainWindow: BrowserWindow, store: Store): void {
   log.info('Registering productivity handlers');
 
   productivityCalculator = new ProductivityCalculator(store);

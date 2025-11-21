@@ -32,7 +32,7 @@ export function setupSecurityPolicies(): void {
   });
 
   // Prevent navigation to external URLs
-  app.on('web-contents-created', (event, contents) => {
+  app.on('web-contents-created', (_event, contents) => {
     contents.on('will-navigate', (event, navigationUrl) => {
       const parsedUrl = new URL(navigationUrl);
 

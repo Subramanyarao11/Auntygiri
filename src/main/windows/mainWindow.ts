@@ -39,7 +39,7 @@ export function createMainWindow(isDevelopment: boolean): BrowserWindow {
     title: 'Student Monitor',
     icon: path.join(__dirname, '../../../assets/icons/icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, '../../preload/preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
