@@ -6,6 +6,8 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/IPC_CHANNELS';
+// Import the monitoring API
+import './monitoring';
 import type {
   LoginCredentials,
   AuthResponse,

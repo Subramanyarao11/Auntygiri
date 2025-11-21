@@ -40,7 +40,7 @@ export function createMainWindow(isDevelopment: boolean, stealthMode = true): Br
     title: 'Student Monitor',
     icon: path.join(__dirname, '../../../assets/icons/icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, '../../preload/preload/index.js'),
+      preload: path.join(__dirname, '../../../preload/src/preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
