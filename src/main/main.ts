@@ -133,7 +133,7 @@ async function createWindow() {
     await initializeServices(mainWindow, store);
 
     // Setup system tray
-    setupSystemTray(mainWindow);
+    setupSystemTray(mainWindow, store);
 
     // Setup auto updater (production only)
     if (isProduction) {
@@ -220,6 +220,10 @@ ipcMain.on('onboarding-complete', async (_event, data) => {
       
       // Start automatic screenshot capture
       startAutomaticScreenshots();
+    } else {
+      // If main window exists, just ensure tray is set up
+      setupSystemTray(mainWindow, store);
+      log.info('System tray refreshed after onboarding');
     }
   }, 3000);
 });
