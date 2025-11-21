@@ -1,6 +1,6 @@
 /**
- * Screenshot IPC Handlers
- * Handles screenshot capture, storage, and upload management
+ * Enhanced Screenshot IPC Handlers
+ * Handles screenshot capture, storage, upload management, and retry queue
  */
 
 import { ipcMain, BrowserWindow } from 'electron';
@@ -15,12 +15,12 @@ let screenshotManager: ScreenshotManager | null = null;
  * Register screenshot IPC handlers
  */
 export function registerScreenshotHandlers(mainWindow: BrowserWindow, store: Store): void {
-  log.info('Registering screenshot handlers');
+  log.info('Registering enhanced screenshot handlers');
 
   // Initialize screenshot manager
   screenshotManager = new ScreenshotManager(mainWindow, store);
 
-  // Capture screenshot handler
+  // Capture screenshot handler (now returns array for multi-monitor)
   ipcMain.handle(IPC_CHANNELS.SCREENSHOT.CAPTURE, async () => {
     try {
       log.info('Screenshot capture requested');
@@ -29,10 +29,10 @@ export function registerScreenshotHandlers(mainWindow: BrowserWindow, store: Sto
         throw new Error('Screenshot manager not initialized');
       }
 
-      const screenshot = await screenshotManager.captureScreenshot();
-      log.info('Screenshot captured:', screenshot.id);
+      const screenshots = await screenshotManager.captureScreenshot();
+      log.info(`${screenshots.length} screenshot(s) captured`);
 
-      return screenshot;
+      return screenshots;
     } catch (error) {
       log.error('Error capturing screenshot:', error);
       throw error;
@@ -102,5 +102,65 @@ export function registerScreenshotHandlers(mainWindow: BrowserWindow, store: Sto
       return [];
     }
   });
+
+  // NEW: Configure API handler
+  ipcMain.handle(IPC_CHANNELS.SCREENSHOT.CONFIGURE_API, async (_event, config: { endpoint: string; token: string; deleteAfterUpload?: boolean }) => {
+    try {
+      log.info('Configuring screenshot API');
+
+      if (!screenshotManager) {
+        throw new Error('Screenshot manager not initialized');
+      }
+
+      screenshotManager.configureAPI(
+        config.endpoint,
+        config.deleteAfterUpload ?? true
+      );
+
+      log.info('API configured successfully');
+      return { success: true };
+    } catch (error) {
+      log.error('Error configuring API:', error);
+      throw error;
+    }
+  });
+
+  // NEW: Get retry queue status handler
+  ipcMain.handle(IPC_CHANNELS.SCREENSHOT.GET_QUEUE_STATUS, async () => {
+    try {
+      if (!screenshotManager) {
+        return { queueSize: 0, items: [] };
+      }
+
+      return screenshotManager.getRetryQueueStatus();
+    } catch (error) {
+      log.error('Error getting queue status:', error);
+      return { queueSize: 0, items: [] };
+    }
+  });
+
+  // NEW: Get API status handler
+  ipcMain.handle(IPC_CHANNELS.SCREENSHOT.GET_API_STATUS, async () => {
+    try {
+      if (!screenshotManager) {
+        return { configured: false, endpoint: null, deleteAfterUpload: true };
+      }
+
+      return screenshotManager.getAPIStatus();
+    } catch (error) {
+      log.error('Error getting API status:', error);
+      return { configured: false, endpoint: null, deleteAfterUpload: true };
+    }
+  });
 }
 
+/**
+ * Cleanup screenshot manager on app quit
+ */
+export function cleanupScreenshotManager(): void {
+  if (screenshotManager) {
+    screenshotManager.cleanup();
+    screenshotManager = null;
+    log.info('Screenshot manager cleaned up');
+  }
+}

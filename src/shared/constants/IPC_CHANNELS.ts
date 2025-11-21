@@ -74,6 +74,10 @@ export const IPC_CHANNELS = {
     UPLOAD: 'screenshot:upload',
     GET_PENDING: 'screenshot:get-pending',
     MARK_UPLOADED: 'screenshot:mark-uploaded',
+    // Enhanced features
+    CONFIGURE_API: 'screenshot:configure-api',
+    GET_QUEUE_STATUS: 'screenshot:get-queue-status',
+    GET_API_STATUS: 'screenshot:get-api-status',
   },
 
   // Bad Website Detection

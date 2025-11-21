@@ -3,7 +3,7 @@
  * Configures security settings for the application
  */
 
-import { app } from 'electron';
+import { app, session } from 'electron';
 import log from 'electron-log';
 
 export function setupSecurityPolicies(): void {
@@ -20,7 +20,7 @@ export function setupSecurityPolicies(): void {
   //         ...details.responseHeaders,
   //         'Content-Security-Policy': [
   //           "default-src 'self'",
-  //           "script-src 'self'",
+  //           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   //           "style-src 'self' 'unsafe-inline'",
   //           "img-src 'self' data: https:",
   //           "font-src 'self' data:",
