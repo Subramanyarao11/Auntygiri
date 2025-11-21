@@ -1,6 +1,6 @@
 /**
- * Screenshot Manager Service
- * Handles screenshot capture, storage, and upload management
+ * Enhanced Screenshot Manager Service
+ * Handles screenshot capture (multi-monitor), storage, retry logic, and API upload management
  */
 
 import { BrowserWindow, desktopCapturer, screen } from 'electron';
@@ -9,20 +9,56 @@ import fs from 'fs/promises';
 import path from 'path';
 import log from 'electron-log';
 import { app } from 'electron';
+import axios, { AxiosError } from 'axios';
 import { APP_CONFIG } from '../../../shared/constants/APP_CONSTANTS';
 import { generateId, formatDate } from '../../../shared/utils';
 import type { Screenshot } from '../../../shared/types';
 
 const SCREENSHOTS_STORE_KEY = 'screenshots';
+const FAILED_UPLOADS_KEY = 'failed_uploads';
+
+interface UploadQueueItem {
+  screenshot: Screenshot;
+  retryCount: number;
+  nextRetryTime: number;
+}
+
+interface APIConfig {
+  endpoint: string | null;
+  token: string | null;
+  deleteAfterUpload: boolean;
+}
 
 export class ScreenshotManager {
   private store: Store;
   private screenshotsDir: string;
+  private apiConfig: APIConfig;
+  private uploadRetryQueue: UploadQueueItem[];
+  private retryQueueInterval: NodeJS.Timeout | null;
+  
+  // Retry configuration
+  private readonly MAX_RETRIES = 3;
+  private readonly INITIAL_RETRY_DELAY = 1000; // 1 second
+  private readonly MAX_RETRY_DELAY = 60000; // 1 minute
+  private readonly QUEUE_CHECK_INTERVAL = 10000; // 10 seconds
+  private readonly UPLOAD_TIMEOUT = 30000; // 30 seconds
 
   constructor(_mainWindow: BrowserWindow, store: Store) {
     this.store = store;
     this.screenshotsDir = path.join(app.getPath('userData'), 'screenshots');
+    this.uploadRetryQueue = [];
+    this.retryQueueInterval = null;
+    
+    // API configuration (to be set via configureAPI method)
+    this.apiConfig = {
+      endpoint: null,
+      token: null,
+      deleteAfterUpload: true,
+    };
+    
     this.initializeDirectory();
+    this.loadFailedUploads();
+    this.startRetryQueueProcessor();
   }
 
   /**
@@ -31,70 +67,334 @@ export class ScreenshotManager {
   private async initializeDirectory(): Promise<void> {
     try {
       await fs.mkdir(this.screenshotsDir, { recursive: true });
+      log.info('Screenshots directory initialized:', this.screenshotsDir);
     } catch (error) {
       log.error('Error creating screenshots directory:', error);
     }
   }
 
   /**
-   * Capture a screenshot
+   * Load failed uploads from store on startup
    */
-  async captureScreenshot(): Promise<Screenshot> {
+  private loadFailedUploads(): void {
     try {
-      log.debug('Capturing screenshot');
+      const saved = this.store.get(FAILED_UPLOADS_KEY, []) as UploadQueueItem[];
+      this.uploadRetryQueue = saved;
+      
+      if (saved.length > 0) {
+        log.info(`Loaded ${saved.length} failed uploads from previous session`);
+      }
+    } catch (error) {
+      log.error('Error loading failed uploads:', error);
+    }
+  }
 
-      // Get primary display
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { width, height } = primaryDisplay.size;
+  /**
+   * Save failed uploads to store
+   */
+  private saveFailedUploads(): void {
+    try {
+      this.store.set(FAILED_UPLOADS_KEY, this.uploadRetryQueue);
+    } catch (error) {
+      log.error('Error saving failed uploads:', error);
+    }
+  }
 
-      // Capture screen
+  /**
+   * Configure API settings
+   */
+  configureAPI(endpoint: string, token: string, deleteAfterUpload = true): void {
+    this.apiConfig.endpoint = endpoint;
+    this.apiConfig.token = token;
+    this.apiConfig.deleteAfterUpload = deleteAfterUpload;
+    
+    log.info('API configured:', {
+      endpoint,
+      deleteAfterUpload,
+      tokenSet: !!token,
+    });
+  }
+
+  /**
+   * Capture screenshots from all monitors
+   */
+  async captureScreenshot(): Promise<Screenshot[]> {
+    try {
+      log.debug('Capturing screenshots from all monitors');
+
+      // Get all displays
+      const displays = screen.getAllDisplays();
+      log.info(`Found ${displays.length} display(s)`);
+
+      // Capture all screens
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width, height },
+        thumbnailSize: {
+          width: 1920,
+          height: 1080,
+        },
       });
 
       if (sources.length === 0) {
         throw new Error('No screen sources available');
       }
 
-      // Get screenshot data
-      const source = sources[0];
-      const thumbnail = source.thumbnail;
-      const image = thumbnail.toJPEG(APP_CONFIG.SCREENSHOT_QUALITY);
+      log.info(`Captured ${sources.length} screen source(s)`);
 
-      // Generate filename
-      const id = generateId();
+      const screenshots: Screenshot[] = [];
       const timestamp = Date.now();
       const date = formatDate(timestamp);
-      const filename = `screenshot_${id}.jpg`;
-      const filePath = path.join(this.screenshotsDir, date);
+      const datePath = path.join(this.screenshotsDir, date);
 
       // Create date directory
-      await fs.mkdir(filePath, { recursive: true });
+      await fs.mkdir(datePath, { recursive: true });
 
-      // Save screenshot
-      const fullPath = path.join(filePath, filename);
-      await fs.writeFile(fullPath, image);
+      // Process each screen
+      for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        const thumbnail = source.thumbnail;
+        const image = thumbnail.toJPEG(APP_CONFIG.SCREENSHOT_QUALITY);
 
-      // Create screenshot entry
-      const screenshot: Screenshot = {
-        id,
-        filePath: fullPath,
-        timestamp,
-        size: image.length,
-        uploaded: false,
+        // Generate filename
+        const id = generateId();
+        const filename = `screenshot_${id}_screen${i + 1}.jpg`;
+        const fullPath = path.join(datePath, filename);
+
+        // Save screenshot
+        await fs.writeFile(fullPath, image);
+
+        // Create screenshot entry
+        const screenshot: Screenshot = {
+          id,
+          filePath: fullPath,
+          timestamp,
+          size: image.length,
+          uploaded: false,
+          // Add display info for multi-monitor tracking
+          windowTitle: `Screen ${i + 1}`,
+          applicationName: source.name,
+        };
+
+        screenshots.push(screenshot);
+
+        // Store screenshot metadata
+        const allScreenshots = this.store.get(SCREENSHOTS_STORE_KEY, []) as Screenshot[];
+        allScreenshots.push(screenshot);
+        this.store.set(SCREENSHOTS_STORE_KEY, allScreenshots);
+
+        log.info(`Screenshot captured: ${id} (Screen ${i + 1})`);
+      }
+
+      // Upload screenshots if API is configured
+      if (this.apiConfig.endpoint) {
+        for (const screenshot of screenshots) {
+          await this.uploadScreenshotWithRetry(screenshot, 0);
+        }
+      } else {
+        log.debug('API not configured, skipping upload');
+      }
+
+      return screenshots;
+    } catch (error) {
+      log.error('Error capturing screenshots:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload screenshot with retry logic
+   */
+  private async uploadScreenshotWithRetry(
+    screenshot: Screenshot,
+    retryCount: number
+  ): Promise<boolean> {
+    if (!this.apiConfig.endpoint || !this.apiConfig.token) {
+      log.warn('API not configured, skipping upload');
+      return false;
+    }
+
+    try {
+      log.info(`Uploading screenshot ${screenshot.id} (attempt ${retryCount + 1}/${this.MAX_RETRIES + 1})`);
+
+      // Read file as base64
+      const imageBuffer = await fs.readFile(screenshot.filePath);
+      const base64Image = imageBuffer.toString('base64');
+
+      // Prepare payload
+      const payload = {
+        screenshotId: screenshot.id,
+        timestamp: screenshot.timestamp,
+        size: screenshot.size,
+        image: base64Image,
+        windowTitle: screenshot.windowTitle,
+        applicationName: screenshot.applicationName,
+        metadata: {
+          capturedAt: new Date(screenshot.timestamp).toISOString(),
+        },
       };
 
-      // Store screenshot metadata
-      const screenshots = this.store.get(SCREENSHOTS_STORE_KEY, []) as Screenshot[];
-      screenshots.push(screenshot);
-      this.store.set(SCREENSHOTS_STORE_KEY, screenshots);
+      // Upload to API
+      const response = await axios.post(this.apiConfig.endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.apiConfig.token,
+        },
+        timeout: this.UPLOAD_TIMEOUT,
+        validateStatus: (status) => status < 600,
+      });
 
-      log.info('Screenshot captured:', id);
-      return screenshot;
+      // Handle successful upload (2xx)
+      if (response.status >= 200 && response.status < 300) {
+        log.info(`Screenshot ${screenshot.id} uploaded successfully`);
+
+        // Mark as uploaded
+        await this.markAsUploaded(screenshot.id);
+
+        // Delete local file if configured
+        if (this.apiConfig.deleteAfterUpload) {
+          await this.deleteScreenshot(screenshot.id);
+          log.info(`Local file deleted: ${screenshot.id}`);
+        }
+
+        // Remove from retry queue if present
+        this.removeFromRetryQueue(screenshot.id);
+
+        return true;
+      }
+      
+      // Handle rate limiting (429)
+      else if (response.status === 429) {
+        const retryAfter = response.headers['retry-after'];
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : this.calculateBackoff(retryCount);
+        
+        log.warn(`Rate limited for screenshot ${screenshot.id}. Waiting ${waitTime / 1000}s before retry`);
+        
+        this.addToRetryQueue(screenshot, retryCount + 1, Date.now() + waitTime);
+        return false;
+      }
+      
+      // Handle other errors
+      else {
+        log.error(`Upload failed for screenshot ${screenshot.id}: ${response.status} ${response.statusText}`);
+        
+        if (retryCount < this.MAX_RETRIES) {
+          const backoffTime = this.calculateBackoff(retryCount);
+          log.info(`Will retry in ${backoffTime / 1000}s...`);
+          
+          this.addToRetryQueue(screenshot, retryCount + 1, Date.now() + backoffTime);
+        } else {
+          log.error(`Max retries reached for screenshot ${screenshot.id}. Giving up.`);
+        }
+        
+        return false;
+      }
     } catch (error) {
-      log.error('Error capturing screenshot:', error);
-      throw error;
+      const axiosError = error as AxiosError;
+      
+      // Log specific error types
+      if (axiosError.code === 'ECONNABORTED') {
+        log.error(`Upload timeout for screenshot ${screenshot.id}`);
+      } else if (axiosError.code === 'ENOTFOUND' || axiosError.code === 'ECONNREFUSED') {
+        log.error(`Network error: Cannot reach API server`);
+      } else {
+        log.error(`Upload error for screenshot ${screenshot.id}:`, axiosError.message);
+      }
+
+      // Retry on network errors
+      if (retryCount < this.MAX_RETRIES) {
+        const backoffTime = this.calculateBackoff(retryCount);
+        log.info(`Will retry in ${backoffTime / 1000}s...`);
+        
+        this.addToRetryQueue(screenshot, retryCount + 1, Date.now() + backoffTime);
+      } else {
+        log.error(`Max retries reached for screenshot ${screenshot.id}. Giving up.`);
+      }
+
+      return false;
+    }
+  }
+
+  /**
+   * Calculate exponential backoff delay
+   */
+  private calculateBackoff(retryCount: number): number {
+    const backoff = this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+    return Math.min(backoff, this.MAX_RETRY_DELAY);
+  }
+
+  /**
+   * Add screenshot to retry queue
+   */
+  private addToRetryQueue(screenshot: Screenshot, retryCount: number, nextRetryTime: number): void {
+    // Remove if already in queue
+    this.removeFromRetryQueue(screenshot.id);
+    
+    // Add to queue
+    this.uploadRetryQueue.push({
+      screenshot,
+      retryCount,
+      nextRetryTime,
+    });
+    
+    this.saveFailedUploads();
+    log.info(`Added to retry queue. Queue size: ${this.uploadRetryQueue.length}`);
+  }
+
+  /**
+   * Remove screenshot from retry queue
+   */
+  private removeFromRetryQueue(screenshotId: string): void {
+    this.uploadRetryQueue = this.uploadRetryQueue.filter(item => item.screenshot.id !== screenshotId);
+    this.saveFailedUploads();
+  }
+
+  /**
+   * Start retry queue processor
+   */
+  private startRetryQueueProcessor(): void {
+    this.retryQueueInterval = setInterval(() => {
+      this.processRetryQueue();
+    }, this.QUEUE_CHECK_INTERVAL);
+    
+    log.info('Retry queue processor started');
+  }
+
+  /**
+   * Process retry queue
+   */
+  private async processRetryQueue(): Promise<void> {
+    if (this.uploadRetryQueue.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const readyToRetry = this.uploadRetryQueue.filter(item => item.nextRetryTime <= now);
+
+    if (readyToRetry.length > 0) {
+      log.info(`Processing ${readyToRetry.length} failed upload(s) from queue...`);
+
+      for (const item of readyToRetry) {
+        // Remove from queue before retrying
+        this.removeFromRetryQueue(item.screenshot.id);
+        
+        // Retry upload
+        await this.uploadScreenshotWithRetry(item.screenshot, item.retryCount);
+      }
+    }
+  }
+
+  /**
+   * Mark screenshot as uploaded
+   */
+  private async markAsUploaded(id: string): Promise<void> {
+    try {
+      const screenshots = this.store.get(SCREENSHOTS_STORE_KEY, []) as Screenshot[];
+      const updated = screenshots.map(s =>
+        s.id === id ? { ...s, uploaded: true, uploadedAt: Date.now() } : s
+      );
+      this.store.set(SCREENSHOTS_STORE_KEY, updated);
+    } catch (error) {
+      log.error('Error marking screenshot as uploaded:', error);
     }
   }
 
@@ -127,7 +427,12 @@ export class ScreenshotManager {
       }
 
       // Delete file
-      await fs.unlink(screenshot.filePath);
+      try {
+        await fs.unlink(screenshot.filePath);
+      } catch (fileError) {
+        // File might already be deleted, log but don't throw
+        log.warn(`Could not delete file ${screenshot.filePath}:`, fileError);
+      }
 
       // Remove from store
       const updated = screenshots.filter(s => s.id !== id);
@@ -141,23 +446,19 @@ export class ScreenshotManager {
   }
 
   /**
-   * Upload a screenshot
+   * Upload a screenshot (public method for manual uploads)
    */
   async uploadScreenshot(id: string): Promise<void> {
     try {
-      log.info('Uploading screenshot:', id);
-
-      // TODO: Implement actual upload to server
-      // For now, just mark as uploaded
-
       const screenshots = this.store.get(SCREENSHOTS_STORE_KEY, []) as Screenshot[];
-      const updated = screenshots.map(s =>
-        s.id === id ? { ...s, uploaded: true, uploadedAt: Date.now() } : s
-      );
+      const screenshot = screenshots.find(s => s.id === id);
 
-      this.store.set(SCREENSHOTS_STORE_KEY, updated);
+      if (!screenshot) {
+        throw new Error('Screenshot not found');
+      }
 
-      log.info('Screenshot uploaded:', id);
+      log.info('Manual upload requested for screenshot:', id);
+      await this.uploadScreenshotWithRetry(screenshot, 0);
     } catch (error) {
       log.error('Error uploading screenshot:', error);
       throw error;
@@ -176,5 +477,36 @@ export class ScreenshotManager {
       return [];
     }
   }
-}
 
+  /**
+   * Get retry queue status
+   */
+  getRetryQueueStatus(): { queueSize: number; items: UploadQueueItem[] } {
+    return {
+      queueSize: this.uploadRetryQueue.length,
+      items: this.uploadRetryQueue,
+    };
+  }
+
+  /**
+   * Get API configuration status
+   */
+  getAPIStatus(): { configured: boolean; endpoint: string | null; deleteAfterUpload: boolean } {
+    return {
+      configured: !!(this.apiConfig.endpoint && this.apiConfig.token),
+      endpoint: this.apiConfig.endpoint,
+      deleteAfterUpload: this.apiConfig.deleteAfterUpload,
+    };
+  }
+
+  /**
+   * Cleanup - stop retry queue processor
+   */
+  cleanup(): void {
+    if (this.retryQueueInterval) {
+      clearInterval(this.retryQueueInterval);
+      this.retryQueueInterval = null;
+      log.info('Retry queue processor stopped');
+    }
+  }
+}
