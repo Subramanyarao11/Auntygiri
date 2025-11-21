@@ -25,7 +25,10 @@
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:tray": "npm run build:electron && node scripts/test-tray-modes.js",
+    "test:production": "npm run build && cross-env NODE_ENV=production electron .",
+    "test:stealth": "npm run test:tray"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.0.1",
