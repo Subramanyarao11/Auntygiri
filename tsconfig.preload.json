@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "dist-electron/preload",
+    "noEmit": false,
+    "lib": ["ES2020", "DOM"],
+    "jsx": "preserve"
+  },
+  "include": ["src/preload/**/*", "src/shared/**/*"],
+  "exclude": ["node_modules", "dist", "release"]
+}
+
