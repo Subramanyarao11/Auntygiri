@@ -3,7 +3,7 @@
  * Configures security settings for the application
  */
 
-import { app, session } from 'electron';
+import { app } from 'electron';
 import log from 'electron-log';
 
 export function setupSecurityPolicies(): void {
