@@ -15,8 +15,8 @@ const MIN_HEIGHT = 600;
 /**
  * Create the main application window
  */
-export function createMainWindow(isDevelopment: boolean): BrowserWindow {
-  log.info('Creating main window');
+export function createMainWindow(isDevelopment: boolean, stealthMode = true): BrowserWindow {
+  log.info('Creating main window', { stealthMode });
 
   // Get primary display dimensions
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -34,7 +34,8 @@ export function createMainWindow(isDevelopment: boolean): BrowserWindow {
     minHeight: MIN_HEIGHT,
     x,
     y,
-    show: false, // Don't show until ready
+    show: false, // Don't show until ready (or keep hidden in stealth mode)
+    skipTaskbar: stealthMode, // Hide from taskbar in stealth mode
     backgroundColor: '#ffffff',
     title: 'Student Monitor',
     icon: path.join(__dirname, '../../../assets/icons/icon.png'),
@@ -54,23 +55,35 @@ export function createMainWindow(isDevelopment: boolean): BrowserWindow {
   if (isDevelopment) {
     // Development: Load from Vite dev server
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    // Don't auto-open DevTools in stealth mode
+    if (!stealthMode) {
+      mainWindow.webContents.openDevTools();
+    }
   } else {
     // Production: Load from built files
     mainWindow.loadFile(path.join(__dirname, '../../../dist/index.html'));
   }
 
-  // Show window when ready
+  // Show window when ready (only if not in stealth mode)
   mainWindow.once('ready-to-show', () => {
-    log.info('Main window ready to show');
-    mainWindow.show();
-    mainWindow.focus();
+    log.info('Main window ready to show', { stealthMode });
+    if (!stealthMode) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      log.info('Stealth mode: Window loaded but kept hidden');
+    }
   });
 
   // Handle window close
   mainWindow.on('close', (event) => {
-    // On macOS, hide window instead of closing
-    if (process.platform === 'darwin') {
+    // In stealth mode, always hide instead of closing
+    if (stealthMode) {
+      event.preventDefault();
+      mainWindow.hide();
+      log.info('Stealth mode: Window hidden instead of closed');
+    } else if (process.platform === 'darwin') {
+      // On macOS, hide window instead of closing
       event.preventDefault();
       mainWindow.hide();
     }
