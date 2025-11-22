@@ -7,10 +7,7 @@ import {
   Lightbulb,
   Target,
   Settings,
-  LogOut,
 } from 'lucide-react';
-import { useAppDispatch } from '../../store';
-import { logout } from '../../store/slices/authSlice';
 
 const navigation = [
   { name: 'Focus Mode', href: '/focus', icon: Target },
@@ -19,11 +16,6 @@ const navigation = [
 ];
 
 export default function Sidebar() {
-  const dispatch = useAppDispatch();
-
-  const handleLogout = () => {
-    dispatch(logout());
-  };
 
   return (
     <div className="w-64 bg-card border-r border-border flex flex-col">
@@ -52,16 +44,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-border">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
-        </button>
-      </div>
+      {/* Logout button removed - students cannot logout */}
     </div>
   );
 }
