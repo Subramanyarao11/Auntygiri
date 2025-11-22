@@ -156,6 +156,17 @@ export const IPC_CHANNELS = {
     CLEAR: 'notification:clear',
     CLICKED: 'notification:clicked',
   },
+
+  // Permissions (macOS)
+  PERMISSIONS: {
+    CHECK_ACCESSIBILITY: 'permissions:check-accessibility',
+    REQUEST_ACCESSIBILITY: 'permissions:request-accessibility',
+    CHECK_SCREEN_RECORDING: 'permissions:check-screen-recording',
+    REQUEST_SCREEN_RECORDING: 'permissions:request-screen-recording',
+    CHECK_ALL: 'permissions:check-all',
+    OPEN_ACCESSIBILITY_SETTINGS: 'permissions:open-accessibility-settings',
+    OPEN_SCREEN_RECORDING_SETTINGS: 'permissions:open-screen-recording-settings',
+  },
 } as const;
 
 export type IPCChannelKey = typeof IPC_CHANNELS;

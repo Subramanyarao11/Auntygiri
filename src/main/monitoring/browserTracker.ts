@@ -12,6 +12,10 @@ import {
   BrowserEventPayload
 } from '../../shared/types/activity';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
+import type { ActivityLogger } from '../services/monitoring/activityLogger';
+import type { ActivityEntry } from '../../shared/types';
+import { ACTIVITY_TYPES } from '../../shared/constants/APP_CONSTANTS';
+import { generateId } from '../../shared/utils';
 
 const execAsync = promisify(exec);
 
@@ -37,6 +41,7 @@ export class BrowserTracker {
   private trackingInterval: NodeJS.Timeout | null = null;
   private intervalMs = 10000; // 10 seconds default
   private mainWindow: BrowserWindow | null = null;
+  private activityLogger: ActivityLogger | null = null;
   private domainTimeMap: DomainTimeTracker = {};
   private currentBrowser: BrowserInfo | null = null;
   private lastUpdateTime = Date.now();
@@ -51,8 +56,9 @@ export class BrowserTracker {
     opera: ['Opera', 'opera']
   };
 
-  constructor(mainWindow: BrowserWindow) {
+  constructor(mainWindow: BrowserWindow, activityLogger?: ActivityLogger) {
     this.mainWindow = mainWindow;
+    this.activityLogger = activityLogger || null;
   }
 
   /**
@@ -168,6 +174,19 @@ export class BrowserTracker {
 
         // Send to renderer
         this.emitBrowserEvent(activity);
+
+        // Send to API via activity logger
+        if (this.activityLogger && browserInfo.url) {
+          const activityEntry: ActivityEntry = {
+            id: generateId(),
+            type: ACTIVITY_TYPES.URL_CHANGE,
+            timestamp: Date.now(),
+            windowTitle: browserInfo.title,
+            applicationName: browserInfo.browserName,
+            url: browserInfo.url,
+          };
+          await this.activityLogger.logActivity(activityEntry);
+        }
 
         log.info(`Active browser tab: ${browserInfo.browserName} - ${browserInfo.domain} - ${browserInfo.title}`);
       }

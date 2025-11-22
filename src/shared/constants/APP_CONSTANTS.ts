@@ -7,7 +7,8 @@ export const APP_CONFIG = {
   APP_VERSION: '1.0.0',
   
   // Monitoring intervals (in milliseconds)
-  ACTIVITY_CHECK_INTERVAL: 60000, // 1 minute
+  ACTIVITY_CHECK_INTERVAL: 10000, // 10 seconds (faster window tracking)
+  BROWSER_CHECK_INTERVAL: 10000, // 10 seconds (browser URL tracking)
   SCREENSHOT_INTERVAL: 300000, // 5 minutes
   IDLE_DETECTION_INTERVAL: 5000, // 5 seconds
   IDLE_THRESHOLD: 300000, // 5 minutes of inactivity

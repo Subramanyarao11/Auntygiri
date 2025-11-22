@@ -19,6 +19,7 @@ import { registerSystemHandlers } from './systemHandlers';
 import { registerUpdateHandlers } from './updateHandlers';
 import { registerSyncHandlers } from './syncHandlers';
 import { registerNotificationHandlers } from './notificationHandlers';
+import { setupPermissionsHandlers } from './permissionsHandlers';
 
 /**
  * Setup all IPC handlers
@@ -40,6 +41,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow, store: Store): void 
     registerUpdateHandlers(mainWindow, store);
     registerSyncHandlers(mainWindow, store);
     registerNotificationHandlers(mainWindow, store);
+    setupPermissionsHandlers(); // Permissions checker (macOS)
 
     log.info('IPC handlers setup complete');
   } catch (error) {

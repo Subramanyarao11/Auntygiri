@@ -8,6 +8,9 @@ import log from 'electron-log';
 import { WindowTracker } from './monitoring/windowTracker';
 import { ActivityLogger } from './monitoring/activityLogger';
 import { IdleDetector } from './monitoring/idleDetector';
+import { BrowserTracker } from '../monitoring/browserTracker';
+import { PermissionsChecker } from '../utils/permissionsChecker';
+import { APP_CONFIG } from '../../shared/constants/APP_CONSTANTS';
 
 export async function initializeServices(mainWindow: BrowserWindow, store: Store): Promise<void> {
   try {
@@ -33,6 +36,28 @@ async function startActivityMonitoring(mainWindow: BrowserWindow, store: Store):
     // Wait a bit for the app to fully initialize
     setTimeout(async () => {
       try {
+        // Check permissions on macOS
+        if (process.platform === 'darwin') {
+          log.info('Checking macOS permissions...');
+          const permissions = await PermissionsChecker.checkAllPermissions();
+          
+          if (!permissions.accessibility) {
+            log.warn('⚠️  Missing Accessibility permissions - window tracking will not work');
+            log.warn('Go to: System Settings → Privacy & Security → Accessibility');
+            log.warn('Enable access for: Electron (or Terminal/Warp in dev mode)');
+          }
+          
+          if (!permissions.screenRecording) {
+            log.warn('⚠️  Missing Screen Recording permissions - screenshots may not work');
+            log.warn('Go to: System Settings → Privacy & Security → Screen Recording');
+          }
+          
+          if (!permissions.allGranted) {
+            // Show permissions dialog to user
+            await PermissionsChecker.showPermissionsDialogIfNeeded();
+          }
+        }
+
         // Initialize activity logger with API integration
         const activityLogger = new ActivityLogger(store);
         log.info('✅ Activity logger initialized with API integration');
@@ -40,10 +65,15 @@ async function startActivityMonitoring(mainWindow: BrowserWindow, store: Store):
         // Initialize trackers with activity logger
         const windowTracker = new WindowTracker(mainWindow, activityLogger);
         const idleDetector = new IdleDetector(mainWindow, activityLogger);
+        const browserTracker = new BrowserTracker(mainWindow, activityLogger);
 
         // Start window tracking
         await windowTracker.start();
         log.info('✅ Window tracking started - activities will be sent to API');
+
+        // Start browser tracking (URL capture for Chrome, Safari, Firefox)
+        browserTracker.startBrowserTracking(APP_CONFIG.BROWSER_CHECK_INTERVAL);
+        log.info('✅ Browser tracking started - URLs will be captured every 10 seconds');
 
         // Start idle detection
         await idleDetector.start();

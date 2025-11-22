@@ -82,8 +82,14 @@ export class WindowTracker {
         url: (window as any).url || undefined,
         timestamp: Date.now(),
       };
-    } catch (error) {
-      log.error('Error getting current window:', error);
+    } catch (error: any) {
+      // Check if this is a permissions error on macOS
+      if (process.platform === 'darwin' && error.message?.includes('Command failed')) {
+        log.warn('⚠️  active-win failed - likely missing macOS accessibility permissions');
+        log.warn('Please grant accessibility permissions in System Settings → Privacy & Security → Accessibility');
+      } else {
+        log.error('Error getting current window:', error);
+      }
       return null;
     }
   }
