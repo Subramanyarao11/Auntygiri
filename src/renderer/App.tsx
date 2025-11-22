@@ -36,10 +36,11 @@ function AppContent() {
     
     // Check authentication status on mount
     dispatch(checkAuthStatus());
+  }, [dispatch]);
 
-    // Setup IPC listeners only if electron API is available
-    if (!window.electron) {
-      console.error('Electron API not available - preload script may have failed');
+  // Setup monitoring listeners only after authentication
+  useEffect(() => {
+    if (!isAuthenticated || !window.electron) {
       return;
     }
 
@@ -62,7 +63,7 @@ function AppContent() {
       unsubscribeIdle();
       unsubscribeRecommendation();
     };
-  }, [dispatch]);
+  }, [isAuthenticated, dispatch]);
 
   return (
     <BrowserRouter>

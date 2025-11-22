@@ -50,15 +50,22 @@ if (STEALTH_MODE_ENABLED) {
 /**
  * Check if user is authenticated
  */
-function isUserAuthenticated(): boolean {
-  const user = store.get('user', null);
-  const accessToken = store.get('accessToken', null);
-  const isAuthenticated = !!(user && accessToken);
-  log.info(`Authentication check - User: ${!!user}, Token: ${!!accessToken}, Authenticated: ${isAuthenticated}`);
+async function isUserAuthenticated(): Promise<boolean> {
+  // Check electron-store for user data (use 'user_data' key to match authService)
+  const user = store.get('user_data', null);
   
-  // For now, always return false to force auth screen
-  log.info('Forcing auth screen for testing');
-  return false;
+  // Check keychain for access token
+  try {
+    const keytar = await import('keytar');
+    const keychainToken = await keytar.getPassword('StudentMonitorApp', 'accessToken');
+    const isAuthenticated = !!(user && keychainToken);
+    log.info(`Authentication check - User: ${!!user}, Keychain Token: ${!!keychainToken}, Authenticated: ${isAuthenticated}`);
+    return isAuthenticated;
+  } catch (error) {
+    log.error('Error checking keychain token:', error);
+    log.info('Authentication check failed - No valid session found');
+    return false;
+  }
 }
 
 /**
@@ -119,9 +126,7 @@ async function createWindow() {
     // Create the main window (hidden initially if stealth mode)
     mainWindow = createMainWindow(isDevelopment, STEALTH_MODE_ENABLED);
 
-    // Setup IPC handlers
-    setupIpcHandlers(mainWindow, store);
-
+    // IPC handlers already registered during app init
     // Initialize services
     await initializeServices(mainWindow, store);
 
@@ -197,24 +202,24 @@ ipcMain.on('auth-success', async (_event, authData) => {
     log.info('Auth window closed');
   }
   
-  // Create main window if not already created
+  // Create main window if not already created (but keep it hidden for background operation)
   if (!mainWindow) {
     await createWindow();
     log.info('Main window created after authentication');
     
-    // In stealth mode, keep window hidden
-    if (STEALTH_MODE_ENABLED) {
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.hide();
-          log.info('Stealth mode: Main window hidden');
-        }
-      }, 100);
-    }
-    
-    // Start automatic screenshot capture
-    startAutomaticScreenshots();
+    // Always keep window hidden in background
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+        log.info('Main window hidden - running in background');
+      }
+    }, 100);
   }
+  
+  // Start automatic screenshot capture
+  log.info('Starting automatic screenshot capture...');
+  startAutomaticScreenshots();
+  log.info('✅ Authentication complete - App running in background with monitoring active');
 });
 
 // Register custom protocols BEFORE app is ready
@@ -258,7 +263,8 @@ app.whenReady().then(async () => {
     log.info('IPC handlers registered');
     
     // Check if user is authenticated
-    if (!isUserAuthenticated()) {
+    const authenticated = await isUserAuthenticated();
+    if (!authenticated) {
       // Not authenticated: Show login/register
       log.info('User not authenticated - showing auth window');
       createAuthWindow();
@@ -278,10 +284,11 @@ app.whenReady().then(async () => {
     }
 
     // macOS: Re-create window when dock icon is clicked
-    app.on('activate', () => {
+    app.on('activate', async () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        if (isUserAuthenticated()) {
-          createWindow();
+        const authenticated = await isUserAuthenticated();
+        if (authenticated) {
+          await createWindow();
         } else {
           createAuthWindow();
         }

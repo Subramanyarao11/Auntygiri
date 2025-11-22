@@ -1,14 +1,16 @@
 /**
  * Activity Logger Service
- * Logs and stores user activity entries
+ * Logs and stores user activity entries and sends them to backend
  */
 
 import Store from 'electron-store';
 import log from 'electron-log';
+import axios from 'axios';
 import { formatDate } from '../../../shared/utils';
 import type { ActivityEntry } from '../../../shared/types';
 
 const ACTIVITY_STORE_KEY = 'activity_logs';
+const API_BASE_URL = 'http://localhost:3000';
 
 export class ActivityLogger {
   private store: Store;
@@ -18,7 +20,7 @@ export class ActivityLogger {
   }
 
   /**
-   * Log an activity entry
+   * Log an activity entry (store locally and send to backend)
    */
   async logActivity(activity: ActivityEntry): Promise<void> {
     try {
@@ -29,10 +31,74 @@ export class ActivityLogger {
       
       this.store.set(`${ACTIVITY_STORE_KEY}.${date}`, activities);
       
-      log.debug('Activity logged:', activity.type);
+      log.debug('Activity logged locally:', activity.type);
+      
+      // Send to backend API
+      await this.sendActivityToBackend(activity);
     } catch (error) {
       log.error('Error logging activity:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Send activity to backend API
+   */
+  private async sendActivityToBackend(activity: ActivityEntry): Promise<void> {
+    try {
+      // Get access token from keychain
+      const keytar = await import('keytar');
+      const accessToken = await keytar.getPassword('StudentMonitorApp', 'accessToken');
+      
+      if (!accessToken) {
+        log.warn('No access token found - skipping activity upload');
+        return;
+      }
+
+      // Map ActivityEntry to backend API format
+      const startTime = new Date(activity.timestamp);
+      const endTime = activity.duration 
+        ? new Date(activity.timestamp + activity.duration) 
+        : new Date(activity.timestamp + 1000); // Default 1 second duration
+      
+      const payload = {
+        window_title: activity.windowTitle || 'Unknown',
+        app_name: activity.applicationName || 'Unknown',
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        activity_type: activity.type === 'WINDOW_CHANGE' ? 'application' : activity.type === 'URL_CHANGE' ? 'browser' : 'system',
+        url: activity.url || null,
+        metadata: {
+          duration: activity.duration || 0,
+          activity_type: activity.type,
+          category: activity.category,
+        },
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/v1/monitor/activity`,
+        payload,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      if (response.status === 201) {
+        log.debug('Activity sent to backend successfully');
+      }
+    } catch (error: any) {
+      // Log error but don't throw - we don't want to break the app if backend is down
+      if (error.code === 'ECONNREFUSED') {
+        log.warn('Backend API not reachable - activity stored locally only');
+      } else if (error.response?.status === 401) {
+        log.error('Authentication failed when sending activity - token may be expired');
+      } else {
+        log.error('Error sending activity to backend:', error.message);
+      }
     }
   }
 

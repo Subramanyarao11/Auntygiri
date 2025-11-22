@@ -198,7 +198,7 @@ export class ScreenshotManager {
   }
 
   /**
-   * Upload screenshot with retry logic using anonymous multipart upload
+   * Upload screenshot with retry logic with authentication
    */
   private async uploadScreenshotWithRetry(
     screenshot: Screenshot,
@@ -211,6 +211,15 @@ export class ScreenshotManager {
 
     try {
       log.info(`Uploading screenshot ${screenshot.id} (attempt ${retryCount + 1}/${this.MAX_RETRIES + 1})`);
+
+      // Get access token from keychain
+      const keytar = await import('keytar');
+      const accessToken = await keytar.getPassword('StudentMonitorApp', 'accessToken');
+      
+      if (!accessToken) {
+        log.error('No access token found - cannot upload screenshot');
+        return false;
+      }
 
       // Read file as buffer for FormData
       const imageBuffer = await fs.readFile(screenshot.filePath);
@@ -225,10 +234,11 @@ export class ScreenshotManager {
         contentType: 'image/jpeg',
       });
 
-      // Upload to API using FormData
+      // Upload to API using FormData with auth token
       const response = await axios.post(this.apiConfig.endpoint, formData, {
         headers: {
           ...formData.getHeaders(),
+          'Authorization': `Bearer ${accessToken}`,
         },
         timeout: this.UPLOAD_TIMEOUT,
         validateStatus: (status) => status < 600,

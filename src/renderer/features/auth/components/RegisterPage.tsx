@@ -14,13 +14,11 @@ export default function RegisterPage() {
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
   const [formData, setFormData] = useState({
-    parent_name: '',
-    parent_email: '',
-    parent_password: '',
-    student_name: '',
-    student_email: '',
-    student_password: '',
+    username: '',
+    email: '',
+    password: '',
     student_standard: '',
+    section: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,42 +26,29 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Parent validations
-    if (!formData.parent_name.trim()) {
-      newErrors.parent_name = 'Parent name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Name is required';
     }
-    if (!formData.parent_email.trim()) {
-      newErrors.parent_email = 'Parent email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parent_email)) {
-      newErrors.parent_email = 'Invalid email format';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
     }
-    if (!formData.parent_password) {
-      newErrors.parent_password = 'Parent password is required';
-    } else if (formData.parent_password.length < 6) {
-      newErrors.parent_password = 'Password must be at least 6 characters';
-    }
-
-    // Student validations
-    if (!formData.student_name.trim()) {
-      newErrors.student_name = 'Student name is required';
-    }
-    if (!formData.student_email.trim()) {
-      newErrors.student_email = 'Student email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.student_email)) {
-      newErrors.student_email = 'Invalid email format';
-    }
-    if (!formData.student_password) {
-      newErrors.student_password = 'Student password is required';
-    } else if (formData.student_password.length < 6) {
-      newErrors.student_password = 'Password must be at least 6 characters';
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
     if (!formData.student_standard) {
-      newErrors.student_standard = 'Student grade/standard is required';
+      newErrors.student_standard = 'Grade/standard is required';
     } else {
       const standard = parseInt(formData.student_standard);
       if (isNaN(standard) || standard < 1 || standard > 12) {
         newErrors.student_standard = 'Grade must be between 1 and 12';
       }
+    }
+    if (!formData.section.trim()) {
+      newErrors.section = 'Section is required';
     }
 
     setErrors(newErrors);
@@ -80,8 +65,14 @@ export default function RegisterPage() {
     try {
       await dispatch(
         registerParentStudent({
-          ...formData,
+          parent_name: formData.username,
+          parent_email: formData.email,
+          parent_password: formData.password,
+          student_name: '',
+          student_email: '',
+          student_password: '',
           student_standard: parseInt(formData.student_standard),
+          section: formData.section,
         })
       ).unwrap();
       // Registration successful, user will be redirected by App.tsx
@@ -106,7 +97,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-primary mb-2">Student Monitor</h1>
-          <p className="text-muted-foreground">Create Parent & Student Accounts</p>
+          <p className="text-muted-foreground">Create Your Account</p>
         </div>
 
         {/* Registration Form */}
@@ -117,132 +108,67 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Parent Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold border-b pb-2">Parent Information</h2>
-
             <div>
-              <label htmlFor="parent_name" className="block text-sm font-medium mb-2">
+              <label htmlFor="username" className="block text-sm font-medium mb-2">
                 Full Name *
               </label>
               <input
-                id="parent_name"
-                name="parent_name"
+                id="username"
+                name="username"
                 type="text"
-                value={formData.parent_name}
+                value={formData.username}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.parent_name ? 'border-destructive' : 'border-input'
+                  errors.username ? 'border-destructive' : 'border-input'
                 } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
               />
-              {errors.parent_name && (
-                <p className="text-destructive text-sm mt-1">{errors.parent_name}</p>
+              {errors.username && (
+                <p className="text-destructive text-sm mt-1">{errors.username}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="parent_email" className="block text-sm font-medium mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
                 Email *
               </label>
               <input
-                id="parent_email"
-                name="parent_email"
+                id="email"
+                name="email"
                 type="email"
-                value={formData.parent_email}
+                value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.parent_email ? 'border-destructive' : 'border-input'
+                  errors.email ? 'border-destructive' : 'border-input'
                 } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
               />
-              {errors.parent_email && (
-                <p className="text-destructive text-sm mt-1">{errors.parent_email}</p>
+              {errors.email && (
+                <p className="text-destructive text-sm mt-1">{errors.email}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="parent_password" className="block text-sm font-medium mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-2">
                 Password *
               </label>
               <input
-                id="parent_password"
-                name="parent_password"
+                id="password"
+                name="password"
                 type="password"
-                value={formData.parent_password}
+                value={formData.password}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.parent_password ? 'border-destructive' : 'border-input'
+                  errors.password ? 'border-destructive' : 'border-input'
                 } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
               />
-              {errors.parent_password && (
-                <p className="text-destructive text-sm mt-1">{errors.parent_password}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Student Information */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold border-b pb-2">Student Information</h2>
-
-            <div>
-              <label htmlFor="student_name" className="block text-sm font-medium mb-2">
-                Full Name *
-              </label>
-              <input
-                id="student_name"
-                name="student_name"
-                type="text"
-                value={formData.student_name}
-                onChange={handleChange}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.student_name ? 'border-destructive' : 'border-input'
-                } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
-              />
-              {errors.student_name && (
-                <p className="text-destructive text-sm mt-1">{errors.student_name}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="student_email" className="block text-sm font-medium mb-2">
-                Email *
-              </label>
-              <input
-                id="student_email"
-                name="student_email"
-                type="email"
-                value={formData.student_email}
-                onChange={handleChange}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.student_email ? 'border-destructive' : 'border-input'
-                } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
-              />
-              {errors.student_email && (
-                <p className="text-destructive text-sm mt-1">{errors.student_email}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="student_password" className="block text-sm font-medium mb-2">
-                Password *
-              </label>
-              <input
-                id="student_password"
-                name="student_password"
-                type="password"
-                value={formData.student_password}
-                onChange={handleChange}
-                className={`w-full px-4 py-2 rounded-lg border ${
-                  errors.student_password ? 'border-destructive' : 'border-input'
-                } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
-              />
-              {errors.student_password && (
-                <p className="text-destructive text-sm mt-1">{errors.student_password}</p>
+              {errors.password && (
+                <p className="text-destructive text-sm mt-1">{errors.password}</p>
               )}
             </div>
 
             <div>
               <label htmlFor="student_standard" className="block text-sm font-medium mb-2">
-                Grade/Standard (1-12) *
+                Student Grade/Standard (1-12) *
               </label>
               <input
                 id="student_standard"
@@ -260,6 +186,26 @@ export default function RegisterPage() {
                 <p className="text-destructive text-sm mt-1">{errors.student_standard}</p>
               )}
             </div>
+
+            <div>
+              <label htmlFor="section" className="block text-sm font-medium mb-2">
+                Section *
+              </label>
+              <input
+                id="section"
+                name="section"
+                type="text"
+                value={formData.section}
+                onChange={handleChange}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  errors.section ? 'border-destructive' : 'border-input'
+                } bg-background focus:outline-none focus:ring-2 focus:ring-ring`}
+                placeholder="e.g., A, B, C"
+              />
+              {errors.section && (
+                <p className="text-destructive text-sm mt-1">{errors.section}</p>
+              )}
+            </div>
           </div>
 
           <button
@@ -267,7 +213,7 @@ export default function RegisterPage() {
             disabled={isLoading}
             className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Creating Accounts...' : 'Create Accounts'}
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
 
           <div className="text-center">

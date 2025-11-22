@@ -39,6 +39,7 @@ export interface RegisterParentStudentData {
   student_email: string;
   student_password: string;
   student_standard: number;
+  section?: string;
 }
 
 export interface AuthResponse {

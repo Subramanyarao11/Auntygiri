@@ -5,17 +5,16 @@
 import { BrowserWindow } from 'electron';
 import Store from 'electron-store';
 import log from 'electron-log';
-import { WindowTracker } from '../monitoring/windowTracker';
-import { BrowserTracker } from '../monitoring/browserTracker';
-import { IdleTracker } from '../monitoring/idleTracker';
-import { SystemMetricsTracker } from '../monitoring/systemMetrics';
+import { WindowTracker } from './monitoring/windowTracker';
+import { ActivityLogger } from './monitoring/activityLogger';
+import { IdleDetector } from './monitoring/idleDetector';
 
-export async function initializeServices(mainWindow: BrowserWindow, _store: Store): Promise<void> {
+export async function initializeServices(mainWindow: BrowserWindow, store: Store): Promise<void> {
   try {
     log.info('Initializing main process services...');
 
-    // Auto-start activity monitoring
-    await startActivityMonitoring(mainWindow);
+    // Auto-start activity monitoring with API integration
+    await startActivityMonitoring(mainWindow, store);
 
     log.info('Main process services initialized');
   } catch (error) {
@@ -25,38 +24,32 @@ export async function initializeServices(mainWindow: BrowserWindow, _store: Stor
 }
 
 /**
- * Auto-start activity monitoring services
+ * Auto-start activity monitoring services with API integration
  */
-async function startActivityMonitoring(mainWindow: BrowserWindow): Promise<void> {
+async function startActivityMonitoring(mainWindow: BrowserWindow, store: Store): Promise<void> {
   try {
-    log.info('Auto-starting activity monitoring services...');
+    log.info('Auto-starting activity monitoring with API integration...');
 
     // Wait a bit for the app to fully initialize
     setTimeout(async () => {
       try {
-        // Initialize trackers
-        const windowTracker = new WindowTracker(mainWindow);
-        const browserTracker = new BrowserTracker(mainWindow);
-        const idleTracker = new IdleTracker(mainWindow);
-        const systemMetricsTracker = new SystemMetricsTracker(mainWindow);
+        // Initialize activity logger with API integration
+        const activityLogger = new ActivityLogger(store);
+        log.info('✅ Activity logger initialized with API integration');
 
-        // Start window tracking (every 10 seconds)
-        windowTracker.startWindowTracking(10000);
-        log.info('✅ Window tracking auto-started (10s interval)');
+        // Initialize trackers with activity logger
+        const windowTracker = new WindowTracker(mainWindow, activityLogger);
+        const idleDetector = new IdleDetector(mainWindow, activityLogger);
 
-        // Start browser tracking (every 10 seconds)  
-        browserTracker.startBrowserTracking(10000);
-        log.info('✅ Browser tracking auto-started (10s interval)');
+        // Start window tracking
+        await windowTracker.start();
+        log.info('✅ Window tracking started - activities will be sent to API');
 
-        // Start idle tracking (check every 60 seconds)
-        idleTracker.startIdleMonitor(60, 5000);
-        log.info('✅ Idle tracking auto-started (60s threshold, 5s check interval)');
+        // Start idle detection
+        await idleDetector.start();
+        log.info('✅ Idle detection started - idle events will be sent to API');
 
-        // Start system metrics tracking (every 30 seconds)
-        systemMetricsTracker.startMetricsTracking(30000);
-        log.info('✅ System metrics tracking auto-started (30s interval)');
-
-        log.info('🚀 All activity monitoring services started automatically');
+        log.info('🚀 Activity monitoring with API integration active');
       } catch (error) {
         log.error('Error auto-starting activity monitoring:', error);
       }

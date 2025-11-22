@@ -34,6 +34,7 @@ export interface ElectronAPI {
     refreshToken: () => Promise<AuthResponse>;
     getStoredToken: () => Promise<string | null>;
     checkAuthStatus: () => Promise<boolean>;
+    notifyAuthSuccess: (authData: AuthResponse) => void;
   };
 
   // Activity Monitoring
@@ -141,6 +142,7 @@ const electronAPI: ElectronAPI = {
     refreshToken: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.REFRESH_TOKEN),
     getStoredToken: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.GET_STORED_TOKEN),
     checkAuthStatus: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.CHECK_AUTH_STATUS),
+    notifyAuthSuccess: (authData) => ipcRenderer.send('auth-success', authData),
   },
 
   // ============ Activity Monitoring ============

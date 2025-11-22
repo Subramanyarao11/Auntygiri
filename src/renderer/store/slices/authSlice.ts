@@ -81,6 +81,11 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.accessToken = action.payload.tokens.accessToken;
       state.refreshToken = action.payload.tokens.refreshToken;
+      
+      // Notify main process of successful authentication
+      if (window.electron?.auth?.notifyAuthSuccess) {
+        window.electron.auth.notifyAuthSuccess(action.payload);
+      }
     });
     builder.addCase(login.rejected, (state, action) => {
       state.isLoading = false;
@@ -100,6 +105,11 @@ const authSlice = createSlice({
       state.student = action.payload.student || null;
       state.accessToken = action.payload.tokens.accessToken;
       state.refreshToken = action.payload.tokens.refreshToken;
+      
+      // Notify main process of successful authentication
+      if (window.electron?.auth?.notifyAuthSuccess) {
+        window.electron.auth.notifyAuthSuccess(action.payload);
+      }
     });
     builder.addCase(registerParentStudent.rejected, (state, action) => {
       state.isLoading = false;

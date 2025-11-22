@@ -116,20 +116,25 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
 }
 
 /**
- * Register parent and student accounts
+ * Register user account
  */
 export async function registerParentStudent(
   data: RegisterParentStudentData
 ): Promise<AuthResponse> {
   try {
-    log.info('Attempting parent-student registration');
+    log.info('Attempting user registration');
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register-parent-student`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        username: data.parent_name,
+        email: data.parent_email,
+        password: data.parent_password,
+        student_standard: data.student_standard.toString(),
+      }),
     });
 
     const responseData = (await response.json()) as any;
@@ -143,15 +148,12 @@ export async function registerParentStudent(
 
     // Return formatted response
     const authResponse: AuthResponse = {
-      user: responseData.data.primaryUser,
+      user: responseData.data.user,
       tokens: {
         accessToken: responseData.data.accessToken,
         refreshToken: responseData.data.refreshToken,
         expiresIn: responseData.data.expiresIn,
       },
-      parent: responseData.data.parent,
-      student: responseData.data.student,
-      primaryUser: responseData.data.primaryUser,
     };
 
     log.info('Registration successful');
