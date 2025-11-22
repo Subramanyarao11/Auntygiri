@@ -16,8 +16,6 @@ import MainLayout from './components/layout/MainLayout';
 // Pages
 import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
-import DashboardPage from './features/dashboard/components/DashboardPage';
-import MonitoringPage from './features/monitoring/components/MonitoringPage';
 import RecommendationsPage from './features/recommendations/components/RecommendationsPage';
 import SettingsPage from './features/settings/components/SettingsPage';
 import FocusModePage from './features/focus/components/FocusModePage';
@@ -76,13 +74,11 @@ function AppContent() {
       ) : (
         <MainLayout>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/monitoring" element={<MonitoringPage />} />
+          <Route path="/" element={<Navigate to="/focus" replace />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/focus" element={<FocusModePage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/focus" replace />} />
         </Routes>
         </MainLayout>
       )}

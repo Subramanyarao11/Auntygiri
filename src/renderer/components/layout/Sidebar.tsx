@@ -4,8 +4,6 @@
 
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Activity,
   Lightbulb,
   Target,
   Settings,
@@ -15,10 +13,8 @@ import { useAppDispatch } from '../../store';
 import { logout } from '../../store/slices/authSlice';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Monitoring', href: '/monitoring', icon: Activity },
-  { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   { name: 'Focus Mode', href: '/focus', icon: Target },
+  { name: 'Recommendations', href: '/recommendations', icon: Lightbulb },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
