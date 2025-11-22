@@ -13,7 +13,7 @@ import { registerScreenshotHandlers } from './screenshotHandlers';
 import { registerBadWebsiteHandlers } from './badWebsiteHandlers';
 import { registerProductivityHandlers } from './productivityHandlers';
 import { registerFocusHandlers } from './focusHandlers';
-import { registerRecommendationHandlers } from './recommendationHandlers';
+import { registerRecommendationsHandlers } from './recommendationsHandlers';
 import { registerSettingsHandlers } from './settingsHandlers';
 import { registerSystemHandlers } from './systemHandlers';
 import { registerUpdateHandlers } from './updateHandlers';
@@ -34,7 +34,7 @@ export function setupIpcHandlers(mainWindow: BrowserWindow, store: Store): void 
     registerBadWebsiteHandlers(mainWindow, store);
     registerProductivityHandlers(mainWindow, store);
     registerFocusHandlers(mainWindow, store);
-    registerRecommendationHandlers(mainWindow, store);
+    registerRecommendationsHandlers(); // API-based recommendations
     registerSettingsHandlers(mainWindow, store);
     registerSystemHandlers(mainWindow, store);
     registerUpdateHandlers(mainWindow, store);

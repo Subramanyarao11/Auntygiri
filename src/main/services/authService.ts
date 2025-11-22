@@ -157,10 +157,44 @@ export async function registerParentStudent(
     };
 
     log.info('Registration successful');
+    
+    // Populate recommendations for the student's class (non-blocking)
+    populateRecommendations(data.student_standard).catch(err => {
+      log.error('Failed to populate recommendations (non-critical):', err);
+    });
+    
     return authResponse;
   } catch (error: any) {
     log.error('Registration error:', error);
     throw new Error(error.message || 'Registration failed. Please try again.');
+  }
+}
+
+/**
+ * Populate recommendations for student after registration
+ */
+async function populateRecommendations(studentStandard: number): Promise<void> {
+  try {
+    log.info('Populating recommendations for class:', studentStandard);
+    
+    const response = await fetch(`${API_BASE_URL}/api/v1/recommendations/populate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ student_standard: studentStandard }),
+    });
+
+    const data = (await response.json()) as any;
+
+    if (!response.ok) {
+      log.warn('Failed to populate recommendations:', data.message);
+      return;
+    }
+
+    log.info(`✅ Populated recommendations: ${data.data.total_content_added} items added for Class ${studentStandard}`);
+  } catch (error: any) {
+    log.error('Error populating recommendations:', error.message);
   }
 }
 

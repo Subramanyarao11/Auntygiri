@@ -82,9 +82,10 @@ export interface ElectronAPI {
 
   // Recommendations
   recommendations: {
-    getAll: () => Promise<Recommendation[]>;
+    getAll: (options?: { limit?: number; category?: string }) => Promise<any>;
     markRead: (id: string) => Promise<void>;
     dismiss: (id: string) => Promise<void>;
+    openURL: (url: string) => void;
     onNewRecommendation: (callback: (recommendation: Recommendation) => void) => () => void;
   };
 
@@ -209,9 +210,10 @@ const electronAPI: ElectronAPI = {
 
   // ============ Recommendations ============
   recommendations: {
-    getAll: () => ipcRenderer.invoke(IPC_CHANNELS.RECOMMENDATIONS.GET_ALL),
+    getAll: (options?: { limit?: number; category?: string }) => ipcRenderer.invoke(IPC_CHANNELS.RECOMMENDATIONS.GET_ALL, options),
     markRead: (id) => ipcRenderer.invoke(IPC_CHANNELS.RECOMMENDATIONS.MARK_READ, id),
     dismiss: (id) => ipcRenderer.invoke(IPC_CHANNELS.RECOMMENDATIONS.DISMISS, id),
+    openURL: (url: string) => ipcRenderer.send('recommendations:open-url', url),
     onNewRecommendation: (callback) => {
       const listener = (_event: Electron.IpcRendererEvent, recommendation: Recommendation) =>
         callback(recommendation);
