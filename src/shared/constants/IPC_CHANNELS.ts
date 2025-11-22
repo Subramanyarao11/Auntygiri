@@ -8,6 +8,7 @@ export const IPC_CHANNELS = {
   AUTH: {
     LOGIN: 'auth:login',
     LOGOUT: 'auth:logout',
+    REGISTER_PARENT_STUDENT: 'auth:register-parent-student',
     REFRESH_TOKEN: 'auth:refresh-token',
     GET_STORED_TOKEN: 'auth:get-stored-token',
     CHECK_AUTH_STATUS: 'auth:check-status',

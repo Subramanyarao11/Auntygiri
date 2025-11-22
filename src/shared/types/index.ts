@@ -8,16 +8,21 @@ import { PRODUCTIVITY_CATEGORIES, ACTIVITY_TYPES, NOTIFICATION_TYPES, FOCUS_SESS
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: 'student' | 'teacher' | 'admin';
-  studentId?: string;
-  avatar?: string;
+  username: string;
+  role: 'student' | 'parent' | 'admin';
+  parent_id?: string | null;
+  student_standard?: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_active?: string;
 }
 
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
-  expiresAt: number;
+  expiresAt?: number;
+  expiresIn?: string;
 }
 
 export interface LoginCredentials {
@@ -26,9 +31,22 @@ export interface LoginCredentials {
   rememberMe?: boolean;
 }
 
+export interface RegisterParentStudentData {
+  parent_name: string;
+  parent_email: string;
+  parent_password: string;
+  student_name: string;
+  student_email: string;
+  student_password: string;
+  student_standard: number;
+}
+
 export interface AuthResponse {
   user: User;
   tokens: AuthTokens;
+  parent?: User;
+  student?: User;
+  primaryUser?: User;
 }
 
 // ============ Activity Monitoring Types ============

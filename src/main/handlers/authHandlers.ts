@@ -8,10 +8,8 @@ import Store from 'electron-store';
 import log from 'electron-log';
 import { IPC_CHANNELS } from '../../shared/constants/IPC_CHANNELS';
 import { validateData, LoginCredentialsSchema } from '../../shared/validators';
-import type { LoginCredentials, AuthResponse } from '../../shared/types';
-
-const AUTH_TOKEN_KEY = 'auth_tokens';
-const USER_KEY = 'user_data';
+import type { LoginCredentials, AuthResponse, RegisterParentStudentData } from '../../shared/types';
+import * as authService from '../services/authService';
 
 /**
  * Register authentication IPC handlers
@@ -30,31 +28,11 @@ export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): 
         throw new Error(validation.error);
       }
 
-      // TODO: Implement actual API call to authentication server
-      // For now, this is a stub that simulates authentication
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call auth service to login
+      const authResponse = await authService.login(credentials);
 
-      // Mock response (replace with actual API call)
-      const authResponse: AuthResponse = {
-        user: {
-          id: '123',
-          email: credentials.email,
-          name: 'Test User',
-          role: 'student',
-          studentId: 'STU001',
-        },
-        tokens: {
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
-          expiresAt: Date.now() + 3600000, // 1 hour from now
-        },
-      };
-
-      // Store tokens and user data securely
-      store.set(AUTH_TOKEN_KEY, authResponse.tokens);
-      store.set(USER_KEY, authResponse.user);
+      // Store user data
+      authService.storeUserData(store, authResponse.user);
 
       if (credentials.rememberMe) {
         store.set('remember_me', true);
@@ -68,17 +46,41 @@ export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): 
     }
   });
 
+  // Registration handler (parent-student)
+  ipcMain.handle(
+    IPC_CHANNELS.AUTH.REGISTER_PARENT_STUDENT,
+    async (_event, data: RegisterParentStudentData) => {
+      try {
+        log.info('Parent-student registration attempt');
+
+        // Call auth service to register
+        const authResponse = await authService.registerParentStudent(data);
+
+        // Store parent and student data
+        if (authResponse.parent && authResponse.student) {
+          authService.storeParentStudentData(store, authResponse.parent, authResponse.student);
+        }
+
+        log.info('Registration successful');
+        return authResponse;
+      } catch (error) {
+        log.error('Registration error:', error);
+        throw error;
+      }
+    }
+  );
+
   // Logout handler
   ipcMain.handle(IPC_CHANNELS.AUTH.LOGOUT, async () => {
     try {
       log.info('Logout request');
 
-      // Clear stored tokens and user data
-      store.delete(AUTH_TOKEN_KEY);
-      store.delete(USER_KEY);
-      store.delete('remember_me');
+      // Call auth service to logout
+      await authService.logout();
 
-      // TODO: Notify server about logout
+      // Clear user data
+      authService.clearUserData(store);
+      store.delete('remember_me');
 
       log.info('Logout successful');
     } catch (error) {
@@ -92,25 +94,18 @@ export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): 
     try {
       log.info('Token refresh request');
 
-      const tokens = store.get(AUTH_TOKEN_KEY) as any;
-      
-      if (!tokens || !tokens.refreshToken) {
-        throw new Error('No refresh token available');
-      }
+      // Call auth service to refresh token
+      const tokens = await authService.refreshAccessToken();
 
-      // TODO: Implement actual token refresh API call
-      // For now, return mock data
+      const user = authService.getUserData(store);
 
       const authResponse: AuthResponse = {
-        user: store.get(USER_KEY) as any,
+        user: user!,
         tokens: {
-          accessToken: 'new_mock_access_token',
+          accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
-          expiresAt: Date.now() + 3600000,
         },
       };
-
-      store.set(AUTH_TOKEN_KEY, authResponse.tokens);
 
       log.info('Token refresh successful');
       return authResponse;
@@ -123,8 +118,7 @@ export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): 
   // Get stored token handler
   ipcMain.handle(IPC_CHANNELS.AUTH.GET_STORED_TOKEN, async () => {
     try {
-      const tokens = store.get(AUTH_TOKEN_KEY) as any;
-      return tokens?.accessToken || null;
+      return await authService.getAccessToken();
     } catch (error) {
       log.error('Get stored token error:', error);
       return null;
@@ -134,16 +128,10 @@ export function registerAuthHandlers(_mainWindow: BrowserWindow, store: Store): 
   // Check auth status handler
   ipcMain.handle(IPC_CHANNELS.AUTH.CHECK_AUTH_STATUS, async () => {
     try {
-      const tokens = store.get(AUTH_TOKEN_KEY) as any;
-      const user = store.get(USER_KEY);
+      const accessToken = await authService.getAccessToken();
+      const user = authService.getUserData(store);
 
-      if (!tokens || !user) {
-        return false;
-      }
-
-      // Check if token is expired
-      if (tokens.expiresAt && tokens.expiresAt < Date.now()) {
-        log.info('Token expired');
+      if (!accessToken || !user) {
         return false;
       }
 

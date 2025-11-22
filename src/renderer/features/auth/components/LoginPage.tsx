@@ -3,11 +3,13 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { login } from '../../../store/slices/authSlice';
 
 export default function LoginPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
   const [email, setEmail] = useState('');
@@ -84,6 +86,16 @@ export default function LoginPage() {
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              className="text-sm text-primary hover:underline"
+            >
+              Don't have an account? Register here
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -3,7 +3,7 @@
  * Creates and configures the main application window
  */
 
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, app } from 'electron';
 import path from 'path';
 import log from 'electron-log';
 
@@ -40,10 +40,10 @@ export function createMainWindow(isDevelopment: boolean, stealthMode = true): Br
     title: 'Student Monitor',
     icon: path.join(__dirname, '../../../assets/icons/icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, '../../../preload/src/preload/index.js'),
+      preload: path.join(app.getAppPath(), 'dist-electron/preload/src/preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,
+      sandbox: false, // Temporarily disabled to test preload script
       webSecurity: true,
       allowRunningInsecureContent: false,
     },

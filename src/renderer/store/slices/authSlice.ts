@@ -4,11 +4,14 @@
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import type { User, LoginCredentials, AuthResponse } from '@shared/types';
+import type { User, LoginCredentials, AuthResponse, RegisterParentStudentData } from '@shared/types';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  parent: User | null;
+  student: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -16,7 +19,10 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  token: null,
+  parent: null,
+  student: null,
+  accessToken: null,
+  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -27,6 +33,14 @@ export const login = createAsyncThunk<AuthResponse, LoginCredentials>(
   'auth/login',
   async (credentials) => {
     const response = await window.electron.auth.login(credentials);
+    return response;
+  }
+);
+
+export const registerParentStudent = createAsyncThunk<AuthResponse, RegisterParentStudentData>(
+  'auth/registerParentStudent',
+  async (data) => {
+    const response = await window.electron.auth.registerParentStudent(data);
     return response;
   }
 );
@@ -65,29 +79,55 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
-      state.token = action.payload.tokens.accessToken;
+      state.accessToken = action.payload.tokens.accessToken;
+      state.refreshToken = action.payload.tokens.refreshToken;
     });
     builder.addCase(login.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.error.message || 'Login failed';
     });
 
+    // Registration
+    builder.addCase(registerParentStudent.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+    builder.addCase(registerParentStudent.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.isAuthenticated = true;
+      state.user = action.payload.user;
+      state.parent = action.payload.parent || null;
+      state.student = action.payload.student || null;
+      state.accessToken = action.payload.tokens.accessToken;
+      state.refreshToken = action.payload.tokens.refreshToken;
+    });
+    builder.addCase(registerParentStudent.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.error.message || 'Registration failed';
+    });
+
     // Logout
     builder.addCase(logout.fulfilled, (state) => {
       state.user = null;
-      state.token = null;
+      state.parent = null;
+      state.student = null;
+      state.accessToken = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
     });
 
     // Check auth status
     builder.addCase(checkAuthStatus.fulfilled, (state, action) => {
       state.isAuthenticated = true;
-      state.token = action.payload.token;
+      state.accessToken = action.payload.token;
     });
     builder.addCase(checkAuthStatus.rejected, (state) => {
       state.isAuthenticated = false;
       state.user = null;
-      state.token = null;
+      state.parent = null;
+      state.student = null;
+      state.accessToken = null;
+      state.refreshToken = null;
     });
   },
 });

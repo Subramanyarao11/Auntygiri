@@ -15,6 +15,7 @@ import MainLayout from './components/layout/MainLayout';
 
 // Pages
 import LoginPage from './features/auth/components/LoginPage';
+import RegisterPage from './features/auth/components/RegisterPage';
 import DashboardPage from './features/dashboard/components/DashboardPage';
 import MonitoringPage from './features/monitoring/components/MonitoringPage';
 import RecommendationsPage from './features/recommendations/components/RecommendationsPage';
@@ -29,10 +30,19 @@ function AppContent() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
+    // Debug: Check if electron API is available
+    console.log('Electron API available:', !!window.electron);
+    console.log('Electron auth API:', window.electron?.auth);
+    
     // Check authentication status on mount
     dispatch(checkAuthStatus());
 
-    // Setup IPC listeners
+    // Setup IPC listeners only if electron API is available
+    if (!window.electron) {
+      console.error('Electron API not available - preload script may have failed');
+      return;
+    }
+
     const unsubscribeActivity = window.electron.monitoring.onActivityUpdate((activity) => {
       dispatch(activityUpdate(activity));
     });
@@ -54,13 +64,16 @@ function AppContent() {
     };
   }, [dispatch]);
 
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
   return (
     <BrowserRouter>
-      <MainLayout>
+      {!isAuthenticated ? (
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      ) : (
+        <MainLayout>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -68,8 +81,10 @@ function AppContent() {
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/focus" element={<FocusModePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </MainLayout>
+        </MainLayout>
+      )}
     </BrowserRouter>
   );
 }

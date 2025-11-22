@@ -10,6 +10,7 @@ import { IPC_CHANNELS } from '../shared/constants/IPC_CHANNELS';
 import './monitoring';
 import type {
   LoginCredentials,
+  RegisterParentStudentData,
   AuthResponse,
   ActivityEntry,
   Screenshot,
@@ -28,6 +29,7 @@ export interface ElectronAPI {
   // Authentication
   auth: {
     login: (credentials: LoginCredentials) => Promise<AuthResponse>;
+    registerParentStudent: (data: RegisterParentStudentData) => Promise<AuthResponse>;
     logout: () => Promise<void>;
     refreshToken: () => Promise<AuthResponse>;
     getStoredToken: () => Promise<string | null>;
@@ -133,6 +135,8 @@ const electronAPI: ElectronAPI = {
   // ============ Authentication ============
   auth: {
     login: (credentials) => ipcRenderer.invoke(IPC_CHANNELS.AUTH.LOGIN, credentials),
+    registerParentStudent: (data) =>
+      ipcRenderer.invoke(IPC_CHANNELS.AUTH.REGISTER_PARENT_STUDENT, data),
     logout: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.LOGOUT),
     refreshToken: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.REFRESH_TOKEN),
     getStoredToken: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH.GET_STORED_TOKEN),

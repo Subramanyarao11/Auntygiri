@@ -48,28 +48,36 @@ if (STEALTH_MODE_ENABLED) {
 }
 
 /**
- * Check if onboarding is complete
+ * Check if user is authenticated
  */
-function isOnboardingComplete(): boolean {
-  const onboarded = store.get('onboarding.completed', false) as boolean;
-  log.info(`Onboarding status: ${onboarded ? 'completed' : 'not completed'}`);
-  return onboarded;
+function isUserAuthenticated(): boolean {
+  const user = store.get('user', null);
+  const accessToken = store.get('accessToken', null);
+  const isAuthenticated = !!(user && accessToken);
+  log.info(`Authentication check - User: ${!!user}, Token: ${!!accessToken}, Authenticated: ${isAuthenticated}`);
+  
+  // For now, always return false to force auth screen
+  log.info('Forcing auth screen for testing');
+  return false;
 }
 
 /**
- * Create onboarding window
+ * Create auth window (login/register)
  */
-function createOnboardingWindow(): BrowserWindow {
-  log.info('Creating onboarding window...');
+function createAuthWindow(): BrowserWindow {
+  log.info('Creating auth window...');
   
   onboardingWindow = new BrowserWindow({
-    width: 600,
+    width: 1000,
     height: 700,
     show: true,
     resizable: false,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: path.join(app.getAppPath(), 'dist-electron/preload/src/preload/index.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false, // Temporarily disabled to test preload script
+      webSecurity: true,
     },
   });
 
@@ -78,41 +86,26 @@ function createOnboardingWindow(): BrowserWindow {
     onboardingWindow.webContents.openDevTools();
   }
 
-  // Load onboarding HTML
-  const onboardingPath = path.join(__dirname, '../../../public/onboarding.html');
-  log.info('Loading onboarding from:', onboardingPath);
-  
-  onboardingWindow.loadFile(onboardingPath).then(() => {
-    log.info('Onboarding page loaded successfully');
-  }).catch((error) => {
-    log.error('Error loading onboarding page:', error);
-    log.info('Trying alternative path...');
-    
-    // Try alternative paths
-    const altPath = path.join(process.cwd(), 'public', 'onboarding.html');
-    log.info('Alternative path:', altPath);
-    
-    onboardingWindow?.loadFile(altPath).catch((err) => {
-      log.error('Alternative path also failed:', err);
+  // Load auth page (login/register)
+  if (isDevelopment) {
+    onboardingWindow.loadURL('http://localhost:5173/login');
+  } else {
+    onboardingWindow.loadFile(path.join(__dirname, '../../../dist/index.html'), {
+      hash: '/login'
     });
-  });
+  }
 
   // Log when page finishes loading
   onboardingWindow.webContents.on('did-finish-load', () => {
-    log.info('Onboarding window finished loading');
-  });
-
-  // Log any console messages from the window
-  onboardingWindow.webContents.on('console-message', (_event, _level, message) => {
-    log.info(`[Onboarding Console] ${message}`);
+    log.info('Auth window finished loading');
   });
 
   onboardingWindow.on('closed', () => {
     onboardingWindow = null;
-    log.info('Onboarding window closed');
+    log.info('Auth window closed');
   });
 
-  log.info('Onboarding window created');
+  log.info('Auth window created');
   return onboardingWindow;
 }
 
@@ -193,39 +186,35 @@ function stopAutomaticScreenshots() {
 }
 
 /**
- * Handle onboarding completion
+ * Handle successful authentication
  */
-ipcMain.on('onboarding-complete', async (_event, data) => {
-  log.info('Onboarding completed:', data);
+ipcMain.on('auth-success', async (_event, authData) => {
+  log.info('Authentication successful:', authData.user?.email);
   
-  // Save onboarding data
-  store.set('onboarding.completed', true);
-  store.set('onboarding.parentEmail', data.parentEmail);
-  store.set('onboarding.childName', data.childName);
-  store.set('onboarding.setupDate', new Date().toISOString());
+  // Close auth window
+  if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+    onboardingWindow.close();
+    log.info('Auth window closed');
+  }
   
-  log.info('Onboarding data saved to store');
-  
-  // Close onboarding window after 3 seconds
-  setTimeout(async () => {
-    if (onboardingWindow && !onboardingWindow.isDestroyed()) {
-      onboardingWindow.close();
-      log.info('Onboarding window closed automatically');
+  // Create main window if not already created
+  if (!mainWindow) {
+    await createWindow();
+    log.info('Main window created after authentication');
+    
+    // In stealth mode, keep window hidden
+    if (STEALTH_MODE_ENABLED) {
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.hide();
+          log.info('Stealth mode: Main window hidden');
+        }
+      }, 100);
     }
     
-    // Create main window if not already created
-    if (!mainWindow) {
-      await createWindow();
-      log.info('Main window created after onboarding');
-      
-      // Start automatic screenshot capture
-      startAutomaticScreenshots();
-    } else {
-      // If main window exists, just ensure tray is set up
-      setupSystemTray(mainWindow, store);
-      log.info('System tray refreshed after onboarding');
-    }
-  }, 3000);
+    // Start automatic screenshot capture
+    startAutomaticScreenshots();
+  }
 });
 
 // Register custom protocols BEFORE app is ready
@@ -264,14 +253,18 @@ app.whenReady().then(async () => {
   try {
     await initializeApp();
     
-    // Check if onboarding is complete
-    if (!isOnboardingComplete()) {
-      // First run: Show onboarding window
-      log.info('First run detected - showing onboarding');
-      createOnboardingWindow();
+    // Setup IPC handlers BEFORE creating any windows
+    setupIpcHandlers(null as any, store);
+    log.info('IPC handlers registered');
+    
+    // Check if user is authenticated
+    if (!isUserAuthenticated()) {
+      // Not authenticated: Show login/register
+      log.info('User not authenticated - showing auth window');
+      createAuthWindow();
     } else {
-      // Already onboarded: Create main window (hidden if stealth mode)
-      log.info('Onboarding complete - creating main window');
+      // Already authenticated: Create main window (hidden if stealth mode)
+      log.info('User authenticated - creating main window');
       await createWindow();
       
       // In stealth mode, keep window hidden
@@ -287,10 +280,10 @@ app.whenReady().then(async () => {
     // macOS: Re-create window when dock icon is clicked
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        if (isOnboardingComplete()) {
+        if (isUserAuthenticated()) {
           createWindow();
         } else {
-          createOnboardingWindow();
+          createAuthWindow();
         }
       } else if (mainWindow) {
         mainWindow.show();
