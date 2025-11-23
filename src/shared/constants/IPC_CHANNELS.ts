@@ -104,6 +104,7 @@ export const IPC_CHANNELS = {
     RESUME_SESSION: 'focus:resume-session',
     END_SESSION: 'focus:end-session',
     GET_ACTIVE_SESSION: 'focus:get-active-session',
+    GET_SESSION_HISTORY: 'focus:get-session-history',
   },
 
   // Recommendations

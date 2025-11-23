@@ -16,7 +16,6 @@ import type {
   Screenshot,
   ProductivityStats,
   AppSettings,
-  FocusSession,
   Recommendation,
   BadWebsite,
   SyncState,
@@ -73,11 +72,11 @@ export interface ElectronAPI {
 
   // Focus Mode
   focus: {
-    startSession: (duration: number) => Promise<FocusSession>;
-    pauseSession: () => Promise<void>;
-    resumeSession: () => Promise<void>;
-    endSession: () => Promise<FocusSession>;
-    getActiveSession: () => Promise<FocusSession | null>;
+    startSession: (config: any) => Promise<any>;
+    pauseSession: () => Promise<any>;
+    resumeSession: () => Promise<any>;
+    endSession: (notes?: string) => Promise<any>;
+    getActiveSession: () => Promise<any>;
   };
 
   // Recommendations
@@ -201,10 +200,10 @@ const electronAPI: ElectronAPI = {
 
   // ============ Focus Mode ============
   focus: {
-    startSession: (duration) => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.START_SESSION, duration),
+    startSession: (config) => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.START_SESSION, config),
     pauseSession: () => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.PAUSE_SESSION),
     resumeSession: () => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.RESUME_SESSION),
-    endSession: () => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.END_SESSION),
+    endSession: (notes) => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.END_SESSION, notes),
     getActiveSession: () => ipcRenderer.invoke(IPC_CHANNELS.FOCUS.GET_ACTIVE_SESSION),
   },
 
